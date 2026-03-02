@@ -1,0 +1,5 @@
+node_modules/
+ticketpopApi/node_modules/
+.env
+ticketpopApi/.env
+.dist/
