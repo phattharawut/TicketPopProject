@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.ticketpop.ui.admin.AdminDashboardScreen
 import com.example.ticketpop.ui.auth.AuthViewModel
 import com.example.ticketpop.ui.auth.LoginScreen
 import com.example.ticketpop.ui.auth.ProfileScreen
@@ -42,8 +43,15 @@ fun AppNavigation() {
             LoginScreen(
                 viewModel = authViewModel,
                 onLoginSuccess = {
-                    navController.navigate(Constants.ROUTE_PROFILE) {
-                        popUpTo(Constants.ROUTE_LOGIN) { inclusive = true }
+                    val user = authViewModel.currentUser.value
+                    if (user?.role == "Admin") {
+                        navController.navigate(Constants.ROUTE_ADMIN_DASH) {
+                            popUpTo(Constants.ROUTE_LOGIN) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Constants.ROUTE_PROFILE) {
+                            popUpTo(Constants.ROUTE_LOGIN) { inclusive = true }
+                        }
                     }
                 },
                 onNavigateToRegister = {
@@ -73,6 +81,20 @@ fun AppNavigation() {
                     navController.navigate(Constants.ROUTE_LOGIN) {
                         popUpTo(Constants.ROUTE_PROFILE) { inclusive = true }
                     }
+                }
+            )
+        }
+
+        composable(Constants.ROUTE_ADMIN_DASH) {
+            AdminDashboardScreen(
+                viewModel = authViewModel,
+                onLogout = {
+                    navController.navigate(Constants.ROUTE_LOGIN) {
+                        popUpTo(Constants.ROUTE_ADMIN_DASH) { inclusive = true }
+                    }
+                },
+                onNavigateToCreateConcert = {
+                    // navController.navigate(Constants.ROUTE_ADMIN_CREATE)
                 }
             )
         }

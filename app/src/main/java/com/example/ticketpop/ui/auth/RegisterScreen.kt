@@ -27,6 +27,8 @@ fun RegisterScreen(
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf<String?>(null) }
+    
     val authState by viewModel.authState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize().background(DarkBackground)) {
@@ -64,8 +66,32 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // แสดงข้อความ Error ถ้าข้อมูลไม่ถูกต้อง
+            val errorMessage = localError ?: (if (authState is AuthState.Error) (authState as AuthState.Error).message else null)
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    color = Color.Yellow,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    fontSize = 14.sp
+                )
+            }
+
             Button(
-                onClick = { viewModel.register(fullName, email, phone, password) },
+                onClick = { 
+                    when {
+                        fullName.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty() -> {
+                            localError = "กรุณากรอกข้อมูลให้ครบทุกช่อง"
+                        }
+                        password != confirmPassword -> {
+                            localError = "รหัสผ่านไม่ตรงกัน"
+                        }
+                        else -> {
+                            localError = null
+                            viewModel.register(fullName, email, phone, password)
+                        }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -83,14 +109,6 @@ fun RegisterScreen(
             TextButton(onClick = onNavigateBack) {
                 Text("มีบัญชีอยู่แล้ว? ", color = TextGray)
                 Text("เข้าสู่ระบบ", color = PrimaryRed, fontWeight = FontWeight.Bold)
-            }
-
-            if (authState is AuthState.Error) {
-                Text(
-                    text = (authState as AuthState.Error).message,
-                    color = Color.Yellow,
-                    modifier = Modifier.padding(top = 16.dp)
-                )
             }
         }
     }

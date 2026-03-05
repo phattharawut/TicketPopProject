@@ -1,7 +1,7 @@
 const express = require("express");
 const mysql = require("mysql2/promise");
 require("dotenv").config();
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const saltRounds = 10;
 
@@ -20,101 +20,161 @@ const pool = mysql.createPool({
     connectionLimit: 10,
 });
 
-// Helper function
 const createResponse = (success, message, data = null) => {
     return { success, message, data };
 };
 
-// ==========================================
-// --- AUTHENTICATION ---
-// ==========================================
-
 // [POST] /api/auth/register
-// Android sends: { fullName, email, phone, password }
 app.post("/api/auth/register", async (req, res) => {
     try {
-        const { fullName, email, phone, password } = req.body;
-        
-        // Check if user already exists
-        const [existing] = await pool.execute("SELECT * FROM users WHERE email = ?", [email]);
+        let { fullName, email, phone, password } = req.body;
+        fullName = fullName?.trim();
+        email = email?.trim();
+        phone = phone?.trim();
+
+        const [existing] = await pool.execute("SELECT * FROM users WHERE email = ? OR phone_number = ?", [email, phone]);
         if (existing.length > 0) {
-            return res.status(400).json(createResponse(false, "อีเมลนี้ถูกใช้งานแล้ว"));
+            return res.status(400).json(createResponse(false, "อีเมลหรือเบอร์โทรศัพท์นี้ถูกใช้งานแล้ว"));
         }
 
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-        const username = email.split('@')[0]; // Simple username from email
+        const username = email.split('@')[0];
 
         const [result] = await pool.execute(
             "INSERT INTO users (username, password_hash, full_name, email, phone_number, role) VALUES (?, ?, ?, ?, ?, 'Customer')",
             [username, hashedPassword, fullName, email, phone]
         );
-        
-        const user = {
-            id: result.insertId.toString(),
-            fullName: fullName,
-            email: email,
-            phone: phone,
-            level: "Bronze"
-        };
-        
-        res.status(201).json({ user: user }); // Match Android AuthResponse
+
+        res.status(201).json({ user: { id: result.insertId.toString(), fullName, email, phone, role: 'Customer', level: "Bronze" } });
     } catch (err) {
-        console.error(err);
-        res.status(500).json(createResponse(false, "เกิดข้อผิดพลาดในการลงทะเบียน: " + err.message));
+        console.error("Register Error:", err);
+        res.status(500).json(createResponse(false, "เกิดข้อผิดพลาดในการลงทะเบียน"));
     }
 });
 
 // [POST] /api/auth/login
-// Android sends: { email, password }
 app.post("/api/auth/login", async (req, res) => {
     try {
-        const { email, password } = req.body;
+        let { email, password } = req.body;
+        email = email?.trim();
 
-        // Search by email or username
-        const [users] = await pool.execute("SELECT * FROM users WHERE email = ? OR username = ?", [email, email]);
+        console.log(`--- Login Attempt: [${email}] ---`);
+
+        const [users] = await pool.execute(
+            "SELECT * FROM users WHERE email = ? OR username = ? OR phone_number = ?",
+            [email, email, email]
+        );
 
         if (users.length === 0) {
             return res.status(401).json(createResponse(false, "ไม่พบผู้ใช้งานนี้"));
         }
 
         const user = users[0];
-        const isMatch = await bcrypt.compare(password, user.password_hash);
+        let isMatch = false;
+        try {
+            isMatch = await bcrypt.compare(password, user.password_hash);
+        } catch (e) {
+            isMatch = (password === user.password_hash);
+        }
+
+        if (!isMatch && password === user.password_hash) {
+            isMatch = true;
+        }
+
         if (!isMatch) {
             return res.status(401).json(createResponse(false, "รหัสผ่านไม่ถูกต้อง"));
         }
 
         const token = jwt.sign({ userId: user.user_id, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
-
-        const userData = {
-            id: user.user_id.toString(),
-            fullName: user.full_name,
-            email: user.email,
-            phone: user.phone_number,
-            level: "Bronze", // Default level
-            profileImageUrl: null
-        };
-
         res.json({
             token: token,
-            user: userData
+            user: {
+                id: user.user_id.toString(),
+                fullName: user.full_name,
+                email: user.email,
+                phone: user.phone_number,
+                role: user.role, // ส่ง role กลับไปด้วย
+                level: "Bronze"
+            }
         });
     } catch (err) {
-        console.error(err);
+        console.error("Login Error:", err);
         res.status(500).json(createResponse(false, "เกิดข้อผิดพลาดในการเข้าสู่ระบบ"));
     }
 });
 
-// ==========================================
-// --- CONCERTS & OTHER APIS ---
-// ==========================================
-
-app.get("/api/concerts", async (req, res) => {
+// [POST] เปลี่ยนรหัสผ่าน
+app.post("/api/auth/change-password", async (req, res) => {
     try {
-        const [results] = await pool.execute("SELECT * FROM concerts");
-        res.json(createResponse(true, "Fetched concerts", results));
+        const { userId, oldPassword, newPassword } = req.body;
+        const [users] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [userId]);
+        if (users.length === 0) return res.status(404).json({ success: false, message: "ไม่พบผู้ใช้" });
+        const user = users[0];
+
+        let isMatch = false;
+        try { isMatch = await bcrypt.compare(oldPassword, user.password_hash); }
+        catch (e) { isMatch = (oldPassword === user.password_hash); }
+
+        if (!isMatch) return res.status(400).json({ success: false, message: "รหัสผ่านเดิมไม่ถูกต้อง" });
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+        await pool.execute("UPDATE users SET password_hash = ? WHERE user_id = ?", [hashedNewPassword, userId]);
+        res.json({ success: true, message: "เปลี่ยนรหัสผ่านสำเร็จแล้ว" });
+    } catch (err) { res.status(500).json({ success: false, message: "Server error" }); }
+});
+
+// [GET] ดึงข้อมูลสถิติ
+app.get("/api/auth/user-stats/:userId", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const [bookings] = await pool.execute("SELECT COUNT(*) as ticketCount FROM bookings WHERE user_id = ? AND status = 'Paid'", [userId]);
+        const [spending] = await pool.execute("SELECT SUM(total_amount) as totalSpending FROM bookings WHERE user_id = ? AND status = 'Paid'", [userId]);
+        const [history] = await pool.execute("SELECT COUNT(*) as historyCount FROM bookings WHERE user_id = ? AND status != 'Cancelled'", [userId]);
+
+        res.json({
+            ticketCount: bookings[0].ticketCount.toString(),
+            points: (spending[0].totalSpending || 0).toLocaleString(),
+            historyCount: history[0].historyCount.toString()
+        });
     } catch (err) {
-        res.status(500).json(createResponse(false, err.message));
+        console.error("Stats Error:", err);
+        res.status(500).json({ message: "Error fetching stats" });
     }
+});
+
+// [GET] ดึงข้อมูลโปรไฟล์
+app.get("/api/auth/profile/:userId", async (req, res) => {
+    try {
+        const [users] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [req.params.userId]);
+        if (users.length === 0) return res.status(404).send("User not found");
+        const user = users[0];
+        res.json({
+            id: user.user_id.toString(),
+            fullName: user.full_name,
+            email: user.email,
+            phone: user.phone_number,
+            role: user.role,
+            level: "Bronze"
+        });
+    } catch (err) { res.status(500).send(err.message); }
+});
+
+// [POST] อัปเดตข้อมูลโปรไฟล์
+app.post("/api/auth/update-profile", async (req, res) => {
+    try {
+        const { userId, fullName, phone } = req.body;
+        await pool.execute("UPDATE users SET full_name = ?, phone_number = ? WHERE user_id = ?", [fullName, phone, userId]);
+        const [updated] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [userId]);
+        const user = updated[0];
+        res.json({
+            id: user.user_id.toString(),
+            fullName: user.full_name,
+            email: user.email,
+            phone: user.phone_number,
+            role: user.role,
+            level: "Bronze"
+        });
+    } catch (err) { res.status(500).send(err.message); }
 });
 
 const PORT = process.env.PORT || 8080;
