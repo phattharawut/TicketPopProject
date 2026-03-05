@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,7 +60,15 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(16.dp))
             AuthTextField(value = email, onValueChange = { email = it }, label = "Email")
             Spacer(modifier = Modifier.height(16.dp))
-            AuthTextField(value = phone, onValueChange = { phone = it }, label = "เบอร์โทรศัพท์")
+            
+            // ปรับปรุงช่องเบอร์โทรศัพท์
+            AuthTextField(
+                value = phone, 
+                onValueChange = { if (it.length <= 10) phone = it }, 
+                label = "เบอร์โทรศัพท์ (10 หลัก)",
+                isNumber = true
+            )
+            
             Spacer(modifier = Modifier.height(16.dp))
             AuthTextField(value = password, onValueChange = { password = it }, label = "รหัสผ่าน", isPassword = true)
             Spacer(modifier = Modifier.height(16.dp))
@@ -82,6 +92,9 @@ fun RegisterScreen(
                     when {
                         fullName.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty() -> {
                             localError = "กรุณากรอกข้อมูลให้ครบทุกช่อง"
+                        }
+                        phone.length != 10 -> {
+                            localError = "เบอร์โทรศัพท์ต้องมี 10 หลัก"
                         }
                         password != confirmPassword -> {
                             localError = "รหัสผ่านไม่ตรงกัน"
@@ -125,7 +138,8 @@ fun AuthTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    isNumber: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
@@ -134,6 +148,9 @@ fun AuthTextField(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (isNumber) KeyboardType.Number else KeyboardType.Text
+        ),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = PrimaryRed,
             unfocusedBorderColor = SurfaceGray,

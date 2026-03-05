@@ -29,10 +29,10 @@ class AuthViewModel : ViewModel() {
     private val _currentUser = mutableStateOf<UserProfile?>(null)
     val currentUser: State<UserProfile?> = _currentUser
 
-    // ข้อมูลสถิติ (ตั๋ว, คะแนน, ประวัติ)
     private val _userStats = mutableStateOf<UserStats?>(null)
     val userStats: State<UserStats?> = _userStats
 
+    // สร้าง Retrofit instance
     private val authApi = Retrofit.Builder()
         .baseUrl(Constants.BASE_URL + "/")
         .addConverterFactory(GsonConverterFactory.create())
@@ -44,13 +44,18 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = authApi.login(LoginRequest(email, password))
-                _currentUser.value = response.user
-                fetchUserStats(response.user.id)
-                _authState.value = AuthState.Success(response.user)
+                if (response.success && response.data != null) {
+                    val user = response.data.user
+                    _currentUser.value = user
+                    fetchUserStats(user.id)
+                    _authState.value = AuthState.Success(user)
+                } else {
+                    _authState.value = AuthState.Error(response.message)
+                }
             } catch (e: HttpException) {
-                _authState.value = AuthState.Error(if (e.code() == 401) "อีเมลหรือรหัสผ่านไม่ถูกต้อง" else "เข้าสู่ระบบไม่สำเร็จ")
+                _authState.value = AuthState.Error("รหัสผ่านไม่ถูกต้อง หรือ ไม่พบผู้ใช้งาน")
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้")
+                _authState.value = AuthState.Error("เชื่อมต่อไม่ได้: ${e.localizedMessage}")
             }
         }
     }
@@ -60,11 +65,15 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 val response = authApi.register(RegisterRequest(fullName, email, phone, password))
-                _currentUser.value = response.user
-                fetchUserStats(response.user.id)
-                _authState.value = AuthState.Success(response.user)
+                if (response.success && response.data != null) {
+                    val user = response.data.user
+                    _currentUser.value = user
+                    _authState.value = AuthState.Success(user)
+                } else {
+                    _authState.value = AuthState.Error(response.message)
+                }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("ลงทะเบียนไม่สำเร็จ")
+                _authState.value = AuthState.Error("สมัครสมาชิกไม่ได้: ${e.localizedMessage}")
             }
         }
     }
@@ -83,28 +92,23 @@ class AuthViewModel : ViewModel() {
     fun updateProfile(userId: String, fullName: String, phone: String) {
         viewModelScope.launch {
             try {
-                val updatedUser = authApi.updateProfile(UpdateProfileRequest(userId, fullName, phone))
-                _currentUser.value = updatedUser
+                val response = authApi.updateProfile(UpdateProfileRequest(userId, fullName, phone))
+                if (response.success && response.data != null) {
+                    _currentUser.value = response.data
+                }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("อัปเดตโปรไฟล์ไม่สำเร็จ")
+                _authState.value = AuthState.Error("อัปเดตไม่สำเร็จ: ${e.localizedMessage}")
             }
         }
     }
 
-    // ฟังก์ชันใหม่: เปลี่ยนรหัสผ่าน
     fun changePassword(userId: String, oldPass: String, newPass: String, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             try {
                 val response = authApi.changePassword(ChangePasswordRequest(userId, oldPass, newPass))
-                if (response.success) {
-                    onResult(true, "เปลี่ยนรหัสผ่านสำเร็จ")
-                } else {
-                    onResult(false, response.message)
-                }
-            } catch (e: HttpException) {
-                onResult(false, if (e.code() == 400) "รหัสผ่านเดิมไม่ถูกต้อง" else "เกิดข้อผิดพลาดที่เซิร์ฟเวอร์")
+                onResult(response.success, response.message)
             } catch (e: Exception) {
-                onResult(false, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้")
+                onResult(false, "เปลี่ยนรหัสผ่านไม่ได้: ${e.localizedMessage}")
             }
         }
     }

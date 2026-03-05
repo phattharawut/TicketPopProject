@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +100,6 @@ fun ProfileScreen(
                 Text(text = user?.fullName ?: "N/A", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextWhite)
                 Text(text = user?.email ?: "N/A", color = TextGray, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(12.dp))
-                // ส่วน Level (Bronze) ถูกนำออกตามความต้องการ
             } else {
                 OutlinedTextField(
                     value = editName,
@@ -110,14 +111,19 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = editPhone,
-                    onValueChange = { editPhone = it },
-                    label = { Text("เบอร์โทรศัพท์", color = TextGray) },
+                    onValueChange = { if (it.length <= 10) editPhone = it },
+                    label = { Text("เบอร์โทรศัพท์ (10 หลัก)", color = TextGray) },
                     modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryRed, unfocusedBorderColor = SurfaceGray, focusedTextColor = TextWhite, unfocusedTextColor = TextWhite)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { 
+                        if (editPhone.length != 10) {
+                            Toast.makeText(context, "เบอร์โทรศัพท์ต้องมี 10 หลัก", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
                         user?.id?.let { id ->
                             viewModel.updateProfile(id, editName, editPhone)
                             Toast.makeText(context, "บันทึกข้อมูลเรียบร้อยแล้ว", Toast.LENGTH_SHORT).show()
@@ -137,7 +143,7 @@ fun ProfileScreen(
             // Stats Row
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 StatItem("ตั๋วของฉัน", userStats?.ticketCount ?: "0", Icons.Default.List)
-                StatItem("คะแนน", userStats?.points ?: "0", Icons.Default.Star)
+                StatItem("ยอดใช้จ่าย", userStats?.points ?: "0", Icons.Default.Star)
                 StatItem("ประวัติ", userStats?.historyCount ?: "0", Icons.Default.Refresh)
             }
 
