@@ -16,15 +16,19 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ticketpop.ui.theme.*
@@ -38,15 +42,13 @@ fun ProfileScreen(
     val context = LocalContext.current
     val user = viewModel.currentUser.value
     val userStats by viewModel.userStats
-    
+
     var isEditing by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
-    
-    // Edit States
+
     var editName by remember { mutableStateOf(user?.fullName ?: "") }
     var editPhone by remember { mutableStateOf(user?.phone ?: "") }
-    
-    // Change Password States
+
     var oldPass by remember { mutableStateOf("") }
     var newPass by remember { mutableStateOf("") }
     var confirmNewPass by remember { mutableStateOf("") }
@@ -54,158 +56,242 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("โปรไฟล์", color = TextWhite, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBackground),
+                title = { Text("โปรไฟล์", color = TextBlack, fontWeight = FontWeight.ExtraBold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White),
                 actions = {
                     IconButton(onClick = { isEditing = !isEditing }) {
                         Icon(
                             imageVector = if (isEditing) Icons.Default.Close else Icons.Default.Edit,
                             contentDescription = "Edit",
-                            tint = PrimaryRed
+                            tint = PrimaryPurple
                         )
                     }
-                }
+                },
+                modifier = Modifier.shadow(2.dp)
             )
         },
-        containerColor = DarkBackground
+        containerColor = Color(0xFFFDFBFF) // พื้นหลังขาวอมม่วงจางๆ
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile Header
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(SurfaceGray)
-                    .border(BorderStroke(2.dp, PrimaryRed), CircleShape),
-                contentAlignment = Alignment.Center
+            // Profile Card Header
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = TextGray
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (!isEditing) {
-                Text(text = user?.fullName ?: "N/A", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextWhite)
-                Text(text = user?.email ?: "N/A", color = TextGray, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-            } else {
-                OutlinedTextField(
-                    value = editName,
-                    onValueChange = { editName = it },
-                    label = { Text("ชื่อ-นามสกุล", color = TextGray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryRed, unfocusedBorderColor = SurfaceGray, focusedTextColor = TextWhite, unfocusedTextColor = TextWhite)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = editPhone,
-                    onValueChange = { if (it.length <= 10) editPhone = it },
-                    label = { Text("เบอร์โทรศัพท์ (10 หลัก)", color = TextGray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryRed, unfocusedBorderColor = SurfaceGray, focusedTextColor = TextWhite, unfocusedTextColor = TextWhite)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { 
-                        if (editPhone.length != 10) {
-                            Toast.makeText(context, "เบอร์โทรศัพท์ต้องมี 10 หลัก", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        user?.id?.let { id ->
-                            viewModel.updateProfile(id, editName, editPhone)
-                            Toast.makeText(context, "บันทึกข้อมูลเรียบร้อยแล้ว", Toast.LENGTH_SHORT).show()
-                            isEditing = false
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed),
-                    shape = RoundedCornerShape(12.dp)
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("บันทึกข้อมูล", fontWeight = FontWeight.Bold)
+                    Box(
+                        modifier = Modifier
+                            .size(110.dp)
+                            .clip(CircleShape)
+                            .background(LightPurple)
+                            .border(BorderStroke(3.dp, PrimaryPurple), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(60.dp),
+                            tint = SecondaryPurple
+                        )
+                        // Edit Badge
+                        if (isEditing) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(PrimaryPurple)
+                                    .align(Alignment.BottomEnd)
+                                    .border(2.dp, Color.White, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.CameraAlt, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (!isEditing) {
+                        Text(
+                            text = user?.fullName ?: "N/A",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextBlack,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = user?.email ?: "N/A",
+                            color = TextGray,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
+                        )
+
+                        // Member Badge
+                        Surface(
+                            modifier = Modifier.padding(top = 12.dp),
+                            color = PrimaryPurple.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(50.dp)
+                        ) {
+                            Text(
+                                "MEMBER",
+                                color = PrimaryPurple,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = editName,
+                            onValueChange = { editName = it },
+                            label = { Text("ชื่อ-นามสกุล") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryPurple, focusedLabelColor = PrimaryPurple)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = editPhone,
+                            onValueChange = { if (it.length <= 10) editPhone = it },
+                            label = { Text("เบอร์โทรศัพท์ (10 หลัก)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryPurple, focusedLabelColor = PrimaryPurple)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                if (editPhone.length != 10) {
+                                    Toast.makeText(context, "เบอร์โทรศัพท์ต้องมี 10 หลัก", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                user?.id?.let { id ->
+                                    viewModel.updateProfile(id, editName, editPhone)
+                                    Toast.makeText(context, "บันทึกข้อมูลเรียบร้อยแล้ว", Toast.LENGTH_SHORT).show()
+                                    isEditing = false
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("บันทึกข้อมูล", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Stats Row
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                StatItem("ตั๋วของฉัน", userStats?.ticketCount ?: "0", Icons.Default.List)
-                StatItem("ยอดใช้จ่าย", userStats?.points ?: "0", Icons.Default.Star)
-                StatItem("ประวัติ", userStats?.historyCount ?: "0", Icons.Default.Refresh)
+            // Stats Section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatItem("ตั๋วของฉัน", userStats?.ticketCount ?: "0", Icons.Default.ConfirmationNumber, Modifier.weight(1f))
+                StatItem("ยอดใช้จ่าย", userStats?.points ?: "0", Icons.Default.AccountBalanceWallet, Modifier.weight(1f))
+                StatItem("ประวัติ", userStats?.historyCount ?: "0", Icons.Default.History, Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Settings Group
+            Text(
+                "การตั้งค่าบัญชี",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp, bottom = 8.dp),
+                color = TextGray,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column {
+                    ProfileMenuAction("เปลี่ยนรหัสผ่าน", Icons.Default.Lock) {
+                        showChangePasswordDialog = true
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Menu Section
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text("การตั้งค่า", color = TextGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                ProfileMenuAction("เปลี่ยนรหัสผ่าน", Icons.Default.Lock) { 
-                    showChangePasswordDialog = true 
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Button(
-                    onClick = { viewModel.logout(); onLogout() },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SurfaceGray),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = PrimaryRed)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("ออกจากระบบ", color = PrimaryRed, fontWeight = FontWeight.Bold)
-                }
+            // Logout Button (Red style)
+            OutlinedButton(
+                onClick = { viewModel.logout(); onLogout() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                border = BorderStroke(1.5.dp, PrimaryRed),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryRed)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ExitToApp, null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("ออกจากระบบ", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 
-    // Change Password Dialog
+    // Change Password Dialog (Styled)
     if (showChangePasswordDialog) {
         AlertDialog(
             onDismissRequest = { showChangePasswordDialog = false },
-            title = { Text("เปลี่ยนรหัสผ่าน", color = TextWhite) },
+            title = { Text("เปลี่ยนรหัสผ่าน", fontWeight = FontWeight.Bold) },
             text = {
-                Column {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
                     OutlinedTextField(
                         value = oldPass,
                         onValueChange = { oldPass = it },
-                        label = { Text("รหัสผ่านเดิม", color = TextGray) },
+                        label = { Text("รหัสผ่านเดิม") },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextWhite, unfocusedTextColor = TextWhite)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryPurple, focusedLabelColor = PrimaryPurple)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = newPass,
                         onValueChange = { newPass = it },
-                        label = { Text("รหัสผ่านใหม่", color = TextGray) },
+                        label = { Text("รหัสผ่านใหม่") },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextWhite, unfocusedTextColor = TextWhite)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryPurple, focusedLabelColor = PrimaryPurple)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = confirmNewPass,
                         onValueChange = { confirmNewPass = it },
-                        label = { Text("ยืนยันรหัสผ่านใหม่", color = TextGray) },
+                        label = { Text("ยืนยันรหัสผ่านใหม่") },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextWhite, unfocusedTextColor = TextWhite)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryPurple, focusedLabelColor = PrimaryPurple)
                     )
                 }
             },
@@ -216,11 +302,6 @@ fun ProfileScreen(
                             Toast.makeText(context, "รหัสผ่านใหม่ไม่ตรงกัน", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        if (newPass.length < 6) {
-                            Toast.makeText(context, "รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        
                         user?.id?.let { id ->
                             viewModel.changePassword(id, oldPass, newPass) { success, message ->
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -231,29 +312,35 @@ fun ProfileScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed)
-                ) { Text("ยืนยัน") }
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                ) { Text("ยืนยันการเปลี่ยน") }
             },
             dismissButton = {
-                TextButton(onClick = { showChangePasswordDialog = false }) { Text("ยกเลิก") }
+                TextButton(onClick = { showChangePasswordDialog = false }) { Text("ยกเลิก", color = PrimaryPurple) }
             },
-            containerColor = SurfaceGray
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp)
         )
     }
 }
 
 @Composable
-fun StatItem(label: String, value: String, icon: ImageVector) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier.size(50.dp).clip(RoundedCornerShape(15.dp)).background(SurfaceGray),
-            contentAlignment = Alignment.Center
+fun StatItem(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(0.5.dp, LightPurple)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, null, tint = PrimaryRed, modifier = Modifier.size(24.dp))
+            Icon(icon, null, tint = PrimaryPurple, modifier = Modifier.size(28.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = value, color = TextBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+            Text(text = label, color = TextGray, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = value, color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        Text(text = label, color = TextGray, fontSize = 12.sp)
     }
 }
 
@@ -265,13 +352,21 @@ fun ProfileMenuAction(text: String, icon: ImageVector, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, null, tint = TextWhite, modifier = Modifier.size(24.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(LightPurple),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = PrimaryPurple, modifier = Modifier.size(20.dp))
+            }
             Spacer(modifier = Modifier.width(16.dp))
-            Text(text = text, color = TextWhite, modifier = Modifier.weight(1f))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = TextGray)
+            Text(text = text, color = TextBlack, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = TextGray, modifier = Modifier.size(20.dp))
         }
     }
 }

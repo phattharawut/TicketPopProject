@@ -13,36 +13,43 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryRed,
-    secondary = SurfaceGray,
+    primary = PrimaryPurple,
+    secondary = SecondaryPurple,
     tertiary = TextGray,
-    background = DarkBackground,
-    surface = SurfaceGray,
-    onPrimary = TextWhite,
-    onSecondary = TextWhite,
-    onBackground = TextWhite,
-    onSurface = TextWhite
+    background = Color(0xFF1C1B1F),
+    surface = Color(0xFF2B2930),
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryRed,
-    secondary = SurfaceGray,
+    primary = PrimaryPurple,
+    secondary = SecondaryPurple,
     tertiary = TextGray,
-    background = TextWhite,
-    surface = Color.White,
+    background = DarkBackground,
+    surface = SurfaceGray,
     onPrimary = Color.White,
-    onSecondary = DarkBackground,
-    onBackground = DarkBackground,
-    onSurface = DarkBackground
+    onSecondary = Color.White,
+    onBackground = TextBlack,
+    onSurface = TextBlack
 )
 
 @Composable
 fun TICKETPOPTheme(
-    darkTheme: Boolean = true, // Force Dark Theme for Movie Experience
+    darkTheme: Boolean = false, // Default to light theme for White-Purple look
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = DarkColorScheme // Always use dark theme for a cinematic look
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
 
     MaterialTheme(
         colorScheme = colorScheme,

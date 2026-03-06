@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -30,10 +31,23 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
-    
+
     val authState by viewModel.authState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize().background(DarkBackground)) {
+        // Soft Purple Gradient Background (Consistency with Login)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(LightPurple.copy(alpha = 0.5f), DarkBackground),
+                        startY = 0f,
+                        endY = 1000f
+                    )
+                )
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -46,7 +60,7 @@ fun RegisterScreen(
                 text = "สร้างบัญชีใหม่",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextWhite
+                color = PrimaryPurple
             )
             Text(
                 text = "เริ่มต้นประสบการณ์การดูหนังที่ดีที่สุด",
@@ -60,15 +74,14 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(16.dp))
             AuthTextField(value = email, onValueChange = { email = it }, label = "Email")
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // ปรับปรุงช่องเบอร์โทรศัพท์
+
             AuthTextField(
-                value = phone, 
-                onValueChange = { if (it.length <= 10) phone = it }, 
+                value = phone,
+                onValueChange = { if (it.length <= 10) phone = it },
                 label = "เบอร์โทรศัพท์ (10 หลัก)",
                 isNumber = true
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
             AuthTextField(value = password, onValueChange = { password = it }, label = "รหัสผ่าน", isPassword = true)
             Spacer(modifier = Modifier.height(16.dp))
@@ -76,19 +89,18 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // แสดงข้อความ Error ถ้าข้อมูลไม่ถูกต้อง
             val errorMessage = localError ?: (if (authState is AuthState.Error) (authState as AuthState.Error).message else null)
             if (errorMessage != null) {
                 Text(
                     text = errorMessage,
-                    color = Color.Yellow,
+                    color = Color.Red,
                     modifier = Modifier.padding(bottom = 16.dp),
                     fontSize = 14.sp
                 )
             }
 
             Button(
-                onClick = { 
+                onClick = {
                     when {
                         fullName.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty() -> {
                             localError = "กรุณากรอกข้อมูลให้ครบทุกช่อง"
@@ -109,7 +121,7 @@ fun RegisterScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
                 enabled = authState !is AuthState.Loading
             ) {
                 if (authState is AuthState.Loading) {
@@ -121,7 +133,7 @@ fun RegisterScreen(
 
             TextButton(onClick = onNavigateBack) {
                 Text("มีบัญชีอยู่แล้ว? ", color = TextGray)
-                Text("เข้าสู่ระบบ", color = PrimaryRed, fontWeight = FontWeight.Bold)
+                Text("เข้าสู่ระบบ", color = PrimaryPurple, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -152,11 +164,12 @@ fun AuthTextField(
             keyboardType = if (isNumber) KeyboardType.Number else KeyboardType.Text
         ),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryRed,
+            focusedBorderColor = PrimaryPurple,
             unfocusedBorderColor = SurfaceGray,
-            focusedTextColor = TextWhite,
-            unfocusedTextColor = TextWhite,
-            cursorColor = PrimaryRed
+            focusedTextColor = TextBlack,
+            unfocusedTextColor = TextBlack,
+            cursorColor = PrimaryPurple,
+            focusedLabelColor = PrimaryPurple
         )
     )
 }

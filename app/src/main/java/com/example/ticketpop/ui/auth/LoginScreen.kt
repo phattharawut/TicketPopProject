@@ -1,6 +1,5 @@
 package com.example.ticketpop.ui.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,10 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ticketpop.ui.theme.*
@@ -28,15 +28,18 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     val authState by viewModel.authState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(DarkBackground)) {
-        // Gradient Background
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(DarkBackground)) {
+        // Soft Purple Gradient Background
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, DarkBackground),
-                        startY = 300f
+                        colors = listOf(LightPurple.copy(alpha = 0.5f), DarkBackground),
+                        startY = 0f,
+                        endY = 1000f
                     )
                 )
         )
@@ -49,15 +52,22 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "TICKET POP",
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = PrimaryPurple)) {
+                        append("TICKET ")
+                    }
+                    withStyle(style = SpanStyle(color = PrimaryRed)) {
+                        append("POP")
+                    }
+                },
                 fontSize = 40.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryRed,
+                fontWeight = FontWeight.ExtraBold,
+                color = PrimaryPurple,
                 letterSpacing = 2.sp
             )
             Text(
-                text = "Book your favorite events",
-                color = TextGray,
+                text = "จองตั๋วกิจกรรมและอีเวนต์ที่คุณชื่นชอบ",
+                color = Color(0xFF757575),
                 fontSize = 14.sp
             )
 
@@ -66,15 +76,16 @@ fun LoginScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email หรือ เบอร์โทร", color = TextGray) },
+                label = { Text("Email หรือ เบอร์โทร", color = Color(0xFF757575)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryRed,
+                    focusedBorderColor = PrimaryPurple,
                     unfocusedBorderColor = SurfaceGray,
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite,
-                    cursorColor = PrimaryRed
+                    focusedTextColor = TextBlack,
+                    unfocusedTextColor = TextBlack,
+                    cursorColor = PrimaryPurple,
+                    focusedLabelColor = PrimaryPurple
                 )
             )
 
@@ -83,16 +94,17 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("รหัสผ่าน", color = TextGray) },
+                label = { Text("รหัสผ่าน", color = Color(0xFF757575)) },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryRed,
+                    focusedBorderColor = PrimaryPurple,
                     unfocusedBorderColor = SurfaceGray,
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite,
-                    cursorColor = PrimaryRed
+                    focusedTextColor = TextBlack,
+                    unfocusedTextColor = TextBlack,
+                    cursorColor = PrimaryPurple,
+                    focusedLabelColor = PrimaryPurple
                 )
             )
 
@@ -104,7 +116,7 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
                 enabled = authState !is AuthState.Loading
             ) {
                 if (authState is AuthState.Loading) {
@@ -117,14 +129,14 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(onClick = onNavigateToRegister) {
-                Text("ยังไม่มีบัญชี? ", color = TextGray)
-                Text("ลงทะเบียนที่นี่", color = PrimaryRed, fontWeight = FontWeight.Bold)
+                Text("ยังไม่มีบัญชี? ", color = Color(0xFF757575))
+                Text("ลงทะเบียนที่นี่", color = PrimaryPurple, fontWeight = FontWeight.Bold)
             }
 
             if (authState is AuthState.Error) {
                 Text(
                     text = (authState as AuthState.Error).message,
-                    color = Color.Yellow,
+                    color = Color.Red,
                     modifier = Modifier.padding(top = 16.dp)
                 )
             }
