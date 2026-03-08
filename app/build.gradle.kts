@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.example.ticketpop"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.ticketpop"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -44,10 +44,21 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    // Coil — โหลดรูปจาก URL
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // Retrofit & Gson
+// Retrofit — เรียก API
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+// Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+// ViewModel + Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+
+    // Retrofit & Gson
     implementation("com.google.code.gson:gson:2.10.1")
 
     // Navigation
