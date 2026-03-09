@@ -2,7 +2,7 @@ package com.example.ticketpop.utils
 
 object Constants {
     // เปลี่ยน IP ตามเครื่องที่รัน XAMPP
-    const val BASE_URL = "http://10.0.2.2:8080"   // Android Emulator
+    const val BASE_URL = "http://10.0.2.2:8080/"   // Android Emulator
     // const val BASE_URL = "http://192.168.x.x:8080" // อุปกรณ์จริง
 
     // SharedPreferences
