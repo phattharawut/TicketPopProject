@@ -32,17 +32,12 @@ class TicketViewModel(application: Application) : AndroidViewModel(application) 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // ============================================================
-    // โหลดรายการตั๋วทั้งหมดของ user
-    // GET /api/users/{userId}/tickets
-    // ============================================================
     fun loadMyTickets(userId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3MzEzNDA1MSwiZXhwIjoxNzczMjIwNDUxfQ.Bj9oPVVp-gBvWwGeTTQ5PHPAyBPASqOcTiZUalXaLSM"
-                // ✅ เรียกแบบนี้ได้เลย (ใช้ได้กับ ApiClient ที่มีอยู่)
+                val token = prefs.getString(Constants.KEY_JWT_TOKEN, "") ?: ""
                 val response = ApiClient.apiService.getMyTickets(
                     userId = userId,
                     authorization = "Bearer $token"
@@ -60,16 +55,12 @@ class TicketViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // ============================================================
-    // โหลดรายละเอียดตั๋ว 1 ใบ
-    // GET /api/tickets/{ticketId}
-    // ============================================================
     fun loadTicketDetail(ticketId: Int) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3MzEzNDA1MSwiZXhwIjoxNzczMjIwNDUxfQ.Bj9oPVVp-gBvWwGeTTQ5PHPAyBPASqOcTiZUalXaLSM"
+                val token = prefs.getString(Constants.KEY_JWT_TOKEN, "") ?: ""
                 val response = ApiClient.apiService.getTicketDetail(
                     ticketId = ticketId,
                     authorization = "Bearer $token"

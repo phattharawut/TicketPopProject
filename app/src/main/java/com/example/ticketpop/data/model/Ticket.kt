@@ -9,6 +9,7 @@ data class Ticket(
     val rowLabel: String?,
     val numberLabel: String?,
     val concertTitle: String,
+    val posterUrl: String?,
     val showDate: String,
     val showTime: String,
     val venueName: String
