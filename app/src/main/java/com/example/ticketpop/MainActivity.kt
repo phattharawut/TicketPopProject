@@ -12,6 +12,9 @@ import com.example.ticketpop.ui.auth.LoginScreen
 import com.example.ticketpop.ui.home.HomeScreen
 import com.example.ticketpop.ui.theme.TICKETPOPTheme
 import com.example.ticketpop.utils.Constants
+import com.example.ticketpop.ui.ticket.MyTicketsScreen
+import com.example.ticketpop.ui.ticket.TicketQrScreen
+import com.example.ticketpop.ui.ticket.TicketHistoryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +34,7 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Constants.ROUTE_LOGIN
+        startDestination = Constants.ROUTE_MY_TICKETS
     ) {
         composable(Constants.ROUTE_LOGIN) {
             LoginScreen()
@@ -39,13 +42,26 @@ fun AppNavigation() {
         composable(Constants.ROUTE_HOME) {
             HomeScreen()
         }
-        // TODO: Add more routes as other developers complete their screens
-        /*
-        composable(Constants.ROUTE_REGISTER) { RegisterScreen() }
-        composable(Constants.ROUTE_CONCERT_DETAIL) { backStackEntry -> 
-            val concertId = backStackEntry.arguments?.getString("concertId")
-            ConcertDetailScreen(concertId) 
+
+        // ==================== TICKET ROUTES (คนที่ 7) ====================
+        composable(Constants.ROUTE_MY_TICKETS) {
+            MyTicketsScreen(
+                navController = navController,
+                userId = 2  // hardcode ชั่วคราว รอคนที่ 2 ส่ง userId จริง
+            )
         }
-        */
+        composable(Constants.ROUTE_TICKET_QR) { backStackEntry ->
+            val ticketId = backStackEntry.arguments?.getString("ticketId")?.toIntOrNull() ?: 0
+            TicketQrScreen(
+                navController = navController,
+                ticketId = ticketId
+            )
+        }
+        composable(Constants.ROUTE_TICKET_HISTORY) {
+            TicketHistoryScreen(
+                navController = navController,
+                userId = 2  // hardcode ชั่วคราว รอคนที่ 2 ส่ง userId จริง
+            )
+        }
     }
 }

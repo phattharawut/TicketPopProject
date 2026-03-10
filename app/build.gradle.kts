@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.example.ticketpop"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.ticketpop"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -36,6 +36,9 @@ android {
 }
 
 dependencies {
+    implementation("androidx.compose.material:material-icons-extended")
+    //Library สำหรับสร้าง QR Code
+    implementation("com.google.zxing:core:3.5.2")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

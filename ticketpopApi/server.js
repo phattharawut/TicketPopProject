@@ -224,7 +224,7 @@ app.get("/api/users/:userId/tickets", async (req, res) => {
             SELECT t.ticket_id AS ticketId, b.booking_id AS bookingId, z.zone_id AS zoneId, 
                    z.zone_name AS zoneName, t.seat_id AS seatId, s.row_label AS rowLabel, 
                    s.number_label AS numberLabel, c.title AS concertTitle, 
-                   c.show_date AS showDate, c.show_time AS showTime, c.venue_name AS venueName
+                   DATE_FORMAT(c.show_date, '%Y-%m-%d') AS showDate, c.show_time AS showTime, c.venue_name AS venueName
             FROM TICKETS t
             JOIN BOOKINGS b ON t.booking_id = b.booking_id
             JOIN ZONES z ON t.zone_id = z.zone_id
@@ -246,7 +246,7 @@ app.get("/api/tickets/:ticketId", async (req, res) => {
             SELECT t.ticket_id AS ticketId, b.booking_id AS bookingId, z.zone_id AS zoneId, 
                    z.zone_name AS zoneName, t.seat_id AS seatId, s.row_label AS rowLabel, 
                    s.number_label AS numberLabel, c.title AS concertTitle, 
-                   c.show_date AS showDate, c.show_time AS showTime, c.venue_name AS venueName
+                   DATE_FORMAT(c.show_date, '%Y-%m-%d') AS showDate, c.show_time AS showTime, c.venue_name AS venueName
             FROM TICKETS t
             JOIN BOOKINGS b ON t.booking_id = b.booking_id
             JOIN ZONES z ON t.zone_id = z.zone_id
