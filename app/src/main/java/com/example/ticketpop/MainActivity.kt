@@ -27,6 +27,7 @@ import com.example.ticketpop.ui.home.SplashScreen
 import com.example.ticketpop.ui.theme.TICKETPOPTheme
 import com.example.ticketpop.utils.Constants
 import com.example.ticketpop.ui.concert.*
+import com.example.ticketpop.ui.seat.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +46,7 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val concertViewModel: ConcertDetailViewModel = viewModel()
+    val seatViewModel: SeatViewModel = viewModel()
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -192,13 +194,41 @@ fun AppNavigation() {
                 }
             }
 
+            // Seat Routes
             composable(
                 route = Constants.ROUTE_ZONE_SELECT,
-                arguments = listOf(navArgument("concertId") { type = NavType.StringType })
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Seat Map Screen ของเพื่อน")
-                }
+                arguments = listOf(navArgument("concertId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val concertId = backStackEntry.arguments?.getInt("concertId") ?: 0
+                ZoneSelectScreen(
+                    viewModel = seatViewModel,
+                    concertId = concertId,
+                    navController = navController
+                )
+            }
+
+            composable(
+                route = Constants.ROUTE_SEAT_MAP,
+                arguments = listOf(navArgument("zoneId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val zoneId = backStackEntry.arguments?.getInt("zoneId") ?: 0
+                SeatMapScreen(
+                    viewModel = seatViewModel,
+                    zoneId = zoneId,
+                    navController = navController
+                )
+            }
+
+            composable(
+                route = Constants.ROUTE_STANDING,
+                arguments = listOf(navArgument("zoneId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val zoneId = backStackEntry.arguments?.getInt("zoneId") ?: 0
+                StandingZoneScreen(
+                    viewModel = seatViewModel,
+                    zoneId = zoneId,
+                    navController = navController
+                )
             }
         }
     }
