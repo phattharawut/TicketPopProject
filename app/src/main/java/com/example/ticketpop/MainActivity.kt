@@ -35,7 +35,6 @@ import com.example.ticketpop.ui.payment.PaymentViewModel
 import com.example.ticketpop.ui.payment.OrderSummaryScreen
 import com.example.ticketpop.ui.payment.PaymentScreen
 import com.example.ticketpop.ui.payment.PaymentSuccessScreen
-import com.example.ticketpop.ui.ticket.MyTicketScreen
 import com.example.ticketpop.ui.ticket.MyTicketsScreen
 import com.example.ticketpop.ui.ticket.TicketQrScreen
 import com.example.ticketpop.ui.ticket.TicketHistoryScreen
@@ -68,7 +67,7 @@ fun AppNavigation() {
 
     val showBottomBar = currentRoute != null && currentRoute in listOf(
         Constants.ROUTE_HOME,
-        Constants.ROUTE_MY_TICKET,
+        Constants.ROUTE_MY_TICKETS,
         Constants.ROUTE_PROFILE
     )
 
@@ -169,12 +168,13 @@ fun AppNavigation() {
                 HomeScreen(navController = navController)
             }
 
-            composable(Constants.ROUTE_MY_TICKET) {
+            composable(Constants.ROUTE_MY_TICKETS) {
                 val user = authViewModel.currentUser.value
                 if (user != null) {
-                    MyTicketScreen(
-                        viewModel = ticketViewModel,
-                        userId = user.id.toInt()
+                    MyTicketsScreen(
+                        navController = navController,
+                        userId = user.id.toInt(),
+                        viewModel = ticketViewModel
                     )
                 } else {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -339,14 +339,18 @@ fun AppNavigation() {
                 )
             }
 
-            // ==================== TICKET ROUTES (คนที่ 7) ====================
-            composable(Constants.ROUTE_TICKET_QR) { backStackEntry ->
-                val ticketId = backStackEntry.arguments?.getString("ticketId")?.toIntOrNull() ?: 0
+            // ==================== TICKET ROUTES ====================
+            composable(
+                route = Constants.ROUTE_TICKET_QR,
+                arguments = listOf(navArgument("ticketId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val ticketId = backStackEntry.arguments?.getInt("ticketId") ?: 0
                 TicketQrScreen(
                     navController = navController,
                     ticketId = ticketId
                 )
             }
+
             composable(Constants.ROUTE_TICKET_HISTORY) {
                 val user = authViewModel.currentUser.value
                 TicketHistoryScreen(

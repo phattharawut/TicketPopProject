@@ -37,7 +37,6 @@ fun TicketQrScreen(
     ticketId: Int,
     viewModel: TicketViewModel = viewModel()
 ) {
-    // โหลดตั๋วจาก ticketId จริงที่รับมา
     LaunchedEffect(ticketId) {
         viewModel.loadTicketDetail(ticketId)
     }
@@ -46,7 +45,6 @@ fun TicketQrScreen(
     val ticket by viewModel.ticketDetail.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // เพิ่ม Brightness เต็มจอเมื่อเปิดหน้านี้
     val view = LocalView.current
     DisposableEffect(Unit) {
         val window = (view.context as? android.app.Activity)?.window
@@ -54,7 +52,6 @@ fun TicketQrScreen(
         window?.attributes = window?.attributes?.apply {
             screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
         }
-        // คืนค่า Brightness เดิมเมื่อออกจากหน้านี้
         onDispose {
             window?.attributes = window?.attributes?.apply {
                 screenBrightness = originalBrightness
@@ -76,27 +73,14 @@ fun TicketQrScreen(
             errorMessage != null -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "โหลดข้อมูลไม่สำเร็จ",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("โหลดข้อมูลไม่สำเร็จ", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = errorMessage ?: "",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 13.sp
-                        )
+                        Text(errorMessage ?: "", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
                         Spacer(modifier = Modifier.height(20.dp))
                         Button(
                             onClick = { viewModel.loadTicketDetail(ticketId) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF6B4EFF)
-                            )
-                        ) {
-                            Text("ลองใหม่")
-                        }
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6B4EFF))
+                        ) { Text("ลองใหม่") }
                     }
                 }
             }
@@ -109,11 +93,7 @@ fun TicketQrScreen(
             else -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "ไม่พบข้อมูลตั๋ว",
-                            color = Color.White,
-                            fontSize = 16.sp
-                        )
+                        Text("ไม่พบข้อมูลตั๋ว", color = Color.White, fontSize = 16.sp)
                         Spacer(modifier = Modifier.height(16.dp))
                         TextButton(onClick = { navController.popBackStack() }) {
                             Text("กลับ", color = Color(0xFF6B4EFF))
@@ -228,7 +208,9 @@ fun TicketQrContent(ticket: Ticket, onBack: () -> Unit = {}) {
                     // ==================== QR CODE ====================
                     // format: TICKETPOP|ticketId|bookingId|zoneName
                     // คนที่ 1 ใช้ format นี้ในการสแกนที่ AdminScanScreen
-                    val qrContent = "TICKETPOP|${ticket.ticketId}|${ticket.bookingId}|${ticket.zoneName}"
+                    // ==================== QR CODE ====================
+                    // ใช้ QR content ปลอม แต่ข้อมูลหน้าจอเป็นของจริง
+                    val qrContent = "TICKETPOP|MOCK|${ticket.ticketId}|${ticket.zoneName}"
                     val qrBitmap = generateQrCode(qrContent)
 
                     Box(
@@ -350,7 +332,8 @@ fun TicketQrScreenPreview() {
         concertTitle = "Summer Music Fest 2024",
         showDate = "2026-04-15",
         showTime = "18:00",
-        venueName = "Impact Arena"
+        venueName = "Impact Arena",
+        posterUrl = ""
     )
     TicketQrContent(ticket = mockTicket)
 }

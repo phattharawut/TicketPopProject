@@ -16,9 +16,8 @@ interface ApiService {
     @GET("api/concerts/{concertId}")
     suspend fun getConcertDetail(@Path("concertId") concertId: Int): ApiResponse<Concert>
 
-    @GET("api/concerts/{concertId}/zones")
+    @GET("api/zones/{concertId}")
     suspend fun getZones(@Path("concertId") concertId: Int): ApiResponse<List<Zone>>
-
     @GET("api/zones/{zoneId}/seats")
     suspend fun getSeats(@Path("zoneId") zoneId: Int): ApiResponse<List<Seat>>
 
@@ -37,4 +36,7 @@ interface ApiService {
         @Path("ticketId") ticketId: Int,
         @Header("Authorization") authorization: String
     ): ApiResponse<Ticket>
+
+    @PUT("api/concerts/reorder")
+    suspend fun reorderConcerts(@Body body: Map<String, @JvmSuppressWildcards Any>): ApiResponse<Any>
 }

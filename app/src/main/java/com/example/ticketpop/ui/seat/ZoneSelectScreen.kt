@@ -43,6 +43,7 @@ fun ZoneSelectScreen(
     val context = LocalContext.current
 
     LaunchedEffect(concertId) {
+        android.util.Log.d("DEBUG", "Loading zones for concertId: $concertId") // ← เพิ่มบรรทัดนี้
         viewModel.loadZones(concertId)
     }
 

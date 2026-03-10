@@ -74,7 +74,10 @@ fun ConcertDetailScreen(
                         )
 
                         Text(
-                            text = "฿ ${concert.minPrice ?: 0.0}",
+                            text = if (concert.minPrice != null && concert.minPrice > 0)
+                                "฿ ${String.format("%,.0f", concert.minPrice)}"
+                            else
+                                "ดูราคาในโซน",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )

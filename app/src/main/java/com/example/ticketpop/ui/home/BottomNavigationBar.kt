@@ -47,15 +47,15 @@ fun BottomNavigationBar(navController: NavController) {
         )
 
         NavigationBarItem(
-            selected = currentRoute == Constants.ROUTE_MY_TICKET,
+            selected = currentRoute == Constants.ROUTE_MY_TICKETS,
             onClick = {
-                navController.navigate(Constants.ROUTE_MY_TICKET) {
+                navController.navigate(Constants.ROUTE_MY_TICKETS) {
                     popUpTo(Constants.ROUTE_HOME) { inclusive = false }
                     launchSingleTop = true
                 }
             },
             // แก้ตรง icon My Ticket
-            icon = { Icon(Icons.Default.DateRange, contentDescription = "My Ticket") },            label = { Text("My Ticket", fontSize = 11.sp) },
+            icon = { Icon(Icons.Default.DateRange, contentDescription = "My Ticket") }, label = { Text("My Ticket", fontSize = 11.sp) },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = Color(0xFF7B2FBE),
                 selectedTextColor = Color(0xFF7B2FBE),

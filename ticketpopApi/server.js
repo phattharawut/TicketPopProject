@@ -187,46 +187,54 @@ app.get("/api/auth/user-stats/:userId", async (req, res) => {
 
 app.get("/api/concerts", async (req, res) => {
     try {
-        const [results] = await pool.execute("SELECT concert_id AS concertId, title, description, venue_name AS venueName, show_date AS showDate, show_time AS showTime, poster_image_url AS posterImageUrl, status FROM concerts");
+        const [results] = await pool.execute(`
+            SELECT c.concert_id AS concertId, c.title, c.description, 
+                   c.venue_name AS venueName, 
+                   DATE_FORMAT(c.show_date, '%Y-%m-%d') AS showDate, 
+                   c.show_time AS showTime, 
+                   c.poster_image_url AS posterImageUrl, c.status,
+                   MIN(z.price) AS minPrice
+            FROM concerts c
+            LEFT JOIN zones z ON c.concert_id = z.concert_id
+            GROUP BY c.concert_id
+        `);
         res.json(createResponse(true, "Concerts fetched", results));
     } catch (err) { res.status(500).json(createResponse(false, err.message)); }
 });
 
-app.post("/api/concerts", async (req, res) => {
-    try {
-        const { title, description, venueName, showDate, showTime, posterImageUrl, zones } = req.body;
-        if (!title || !venueName || !showDate || !showTime) {
-            return res.status(400).json(createResponse(false, "กรุณากรอกข้อมูลให้ครบถ้วน"));
-        }
-        const [result] = await pool.execute(
-            "INSERT INTO concerts (title, description, venue_name, show_date, show_time, poster_image_url, status) VALUES (?, ?, ?, ?, ?, ?, 'Active')",
-            [title, description || '', venueName, showDate, showTime, posterImageUrl || '']
-        );
-        const concertId = result.insertId;
-        if (zones && zones.length > 0) {
-            for (const zone of zones) {
-                await pool.execute(
-                    "INSERT INTO zones (concert_id, zone_name, type, price, capacity, color_code) VALUES (?, ?, ?, ?, ?, ?)",
-                    [concertId, zone.zoneName, zone.type || 'Seated', zone.price || 0, zone.capacity || 0, zone.colorCode || '#7B2FBE']
-                );
-            }
-        }
-        res.status(201).json(createResponse(true, "สร้างคอนเสิร์ตสำเร็จ", { concertId }));
-    } catch (err) {
-        console.error(err);
-        res.status(500).json(createResponse(false, err.message));
-    }
-});
-
 app.get("/api/concerts/:concertId", async (req, res) => {
     try {
-        const [rows] = await pool.execute(
-            "SELECT concert_id AS concertId, title, description, venue_name AS venueName, show_date AS showDate, show_time AS showTime, poster_image_url AS posterImageUrl, status FROM concerts WHERE concert_id = ?",
-            [req.params.concertId]
-        );
+        const [rows] = await pool.execute(`
+            SELECT c.concert_id AS concertId, c.title, c.description,
+                   c.venue_name AS venueName,
+                   DATE_FORMAT(c.show_date, '%Y-%m-%d') AS showDate,
+                   c.show_time AS showTime,
+                   c.poster_image_url AS posterImageUrl, c.status,
+                   MIN(z.price) AS minPrice
+            FROM concerts c
+            LEFT JOIN zones z ON c.concert_id = z.concert_id
+            WHERE c.concert_id = ?
+            GROUP BY c.concert_id
+        `, [req.params.concertId]);
         if (rows.length === 0) return res.status(404).json(createResponse(false, "ไม่พบคอนเสิร์ตนี้"));
         res.json(createResponse(true, "Concert detail fetched", rows[0]));
     } catch (err) { res.status(500).json(createResponse(false, err.message)); }
+});
+
+app.put("/api/concerts/reorder", async (req, res) => {
+    try {
+        const { orders } = req.body;
+        // orders = [{ concertId: 1, sortOrder: 0 }, ...]
+        for (const item of orders) {
+            await pool.execute(
+                "UPDATE concerts SET sort_order = ? WHERE concert_id = ?",
+                [item.sortOrder, item.concertId]
+            );
+        }
+        res.json(createResponse(true, "เรียงลำดับสำเร็จ"));
+    } catch (err) {
+        res.status(500).json(createResponse(false, err.message));
+    }
 });
 
 // ==========================================
@@ -416,7 +424,9 @@ app.get("/api/tickets/:ticketId", async (req, res) => {
         const [rows] = await pool.execute(`
             SELECT t.ticket_id AS ticketId, b.booking_id AS bookingId,
                    u.full_name AS holderName,
-                   c.title AS concertTitle, z.zone_id AS zoneId, z.zone_name AS zoneName,
+                   c.title AS concertTitle, c.poster_image_url AS posterUrl,
+                   z.zone_id AS zoneId, z.zone_name AS zoneName,
+                   t.seat_id AS seatId,
                    s.row_label AS rowLabel, s.number_label AS numberLabel,
                    DATE_FORMAT(c.show_date, '%Y-%m-%d') AS showDate, c.show_time AS showTime,
                    c.venue_name AS venueName, t.is_used AS isUsed
@@ -446,6 +456,7 @@ app.get("/api/tickets/:ticketId", async (req, res) => {
             showDate: t.showDate,
             showTime: t.showTime,
             venueName: t.venueName,
+            posterUrl: t.posterUrl,
             holderName: t.holderName,
             isUsed: t.isUsed === 1
         }));

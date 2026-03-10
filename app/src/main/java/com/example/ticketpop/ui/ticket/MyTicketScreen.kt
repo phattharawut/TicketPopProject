@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.ticketpop.data.model.Ticket
+import androidx.compose.runtime.collectAsState  // ← เพิ่ม import นี้
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,12 +27,12 @@ fun MyTicketScreen(
     viewModel: TicketViewModel,
     userId: Int
 ) {
-    val tickets by viewModel.tickets
-    val isLoading by viewModel.isLoading
-    val error by viewModel.error
+    val tickets by viewModel.myTickets.collectAsState()       // tickets → myTickets
+    val isLoading by viewModel.isLoading.collectAsState()     // ใช้ collectAsState()
+    val error by viewModel.errorMessage.collectAsState()      // error → errorMessage
 
     LaunchedEffect(userId) {
-        viewModel.loadUserTickets(userId)
+        viewModel.loadMyTickets(userId)                       // loadUserTickets → loadMyTickets
     }
 
     Scaffold(
