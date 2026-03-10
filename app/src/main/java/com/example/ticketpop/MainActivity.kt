@@ -4,14 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.ticketpop.ui.admin.AdminDashboardScreen
 import com.example.ticketpop.ui.auth.AuthViewModel
 import com.example.ticketpop.ui.auth.LoginScreen
@@ -22,6 +26,7 @@ import com.example.ticketpop.ui.home.HomeScreen
 import com.example.ticketpop.ui.home.SplashScreen
 import com.example.ticketpop.ui.theme.TICKETPOPTheme
 import com.example.ticketpop.utils.Constants
+import com.example.ticketpop.ui.concert.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +44,7 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
+    val concertViewModel: ConcertDetailViewModel = viewModel()
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -59,7 +65,8 @@ fun AppNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Constants.ROUTE_SPLASH
+            startDestination = Constants.ROUTE_SPLASH,
+            modifier = Modifier.padding(innerPadding)
         ) {
             composable(Constants.ROUTE_SPLASH) {
                 SplashScreen(navController = navController)
@@ -127,6 +134,71 @@ fun AppNavigation() {
 
             composable(Constants.ROUTE_HOME) {
                 HomeScreen(navController = navController)
+            }
+
+            // Concert Routes
+            composable(
+                route = Constants.ROUTE_CONCERT_DETAIL,
+                arguments = listOf(navArgument("concertId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val concertIdStr = backStackEntry.arguments?.getString("concertId")
+                val concertId = concertIdStr?.toIntOrNull() ?: 1
+                
+                val concert by concertViewModel.concert
+                val isLoading by concertViewModel.isLoading
+
+                LaunchedEffect(concertId) {
+                    concertViewModel.loadConcertDetail(concertId)
+                }
+
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (concert != null) {
+                    ConcertDetailScreen(
+                        concert = concert!!,
+                        onBackClick = { navController.popBackStack() },
+                        onVenueClick = { navController.navigate("venue/${concertId}") },
+                        onArtistClick = { navController.navigate("artist/${concertId}") },
+                        onSelectZoneClick = { navController.navigate("zone/${concertId}") }
+                    )
+                }
+            }
+
+            composable(
+                route = Constants.ROUTE_VENUE_INFO,
+                arguments = listOf(navArgument("concertId") { type = NavType.StringType })
+            ) {
+                val concert by concertViewModel.concert
+                if (concert != null) {
+                    VenueInfoScreen(
+                        concert = concert!!,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+
+            composable(
+                route = Constants.ROUTE_ARTIST_INFO,
+                arguments = listOf(navArgument("concertId") { type = NavType.StringType })
+            ) {
+                val concert by concertViewModel.concert
+                if (concert != null) {
+                    ArtistInfoScreen(
+                        concert = concert!!,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+
+            composable(
+                route = Constants.ROUTE_ZONE_SELECT,
+                arguments = listOf(navArgument("concertId") { type = NavType.StringType })
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Seat Map Screen ของเพื่อน")
+                }
             }
         }
     }
