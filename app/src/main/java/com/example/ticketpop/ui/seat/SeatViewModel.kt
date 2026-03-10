@@ -9,7 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.ticketpop.data.model.Seat
 import com.example.ticketpop.data.model.Zone
 import com.example.ticketpop.data.remote.ApiClient
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import com.example.ticketpop.data.model.ApiResponse
 
 class SeatViewModel : ViewModel() {
     var zoneList = mutableStateListOf<Zone>()
@@ -40,6 +43,13 @@ class SeatViewModel : ViewModel() {
                 } else {
                     errorMessage = response.message
                 }
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                errorMessage = try {
+                    Gson().fromJson(errorBody, ApiResponse::class.java).message
+                } catch (ex: Exception) {
+                    "ไม่สามารถโหลดข้อมูลโซนได้ (400)"
+                }
             } catch (e: Exception) {
                 errorMessage = "ไม่สามารถโหลดข้อมูลโซนได้: ${e.localizedMessage}"
             } finally {
@@ -61,8 +71,15 @@ class SeatViewModel : ViewModel() {
                 } else {
                     errorMessage = response.message
                 }
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                errorMessage = try {
+                    Gson().fromJson(errorBody, ApiResponse::class.java).message
+                } catch (ex: Exception) {
+                    "ไม่สามารถโหลดผังที่นั่งได้ (400)"
+                }
             } catch (e: Exception) {
-                errorMessage = "ไม่สามารถโหลดผังที่นั่งได้"
+                errorMessage = "ไม่สามารถโหลดผังที่นั่งได้: ${e.localizedMessage}"
             } finally {
                 isLoading = false
             }

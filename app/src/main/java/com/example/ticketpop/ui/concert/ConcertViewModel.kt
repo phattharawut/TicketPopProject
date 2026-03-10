@@ -24,9 +24,9 @@ class ConcertDetailViewModel : ViewModel() {
                 val response =
                     ApiClient.apiService.getConcertDetail(concertId)
 
-                if (response.isSuccessful) {
+                if (response.success) {
 
-                    concert.value = response.body()?.data
+                    concert.value = response.data
 
                 }
 

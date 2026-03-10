@@ -1,0 +1,87 @@
+package com.example.ticketpop.ui.admin
+
+import android.app.Application
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.ticketpop.data.model.*
+import com.example.ticketpop.data.remote.ApiClient
+import com.example.ticketpop.data.remote.AdminApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+sealed class AdminState {
+    object Idle : AdminState()
+    object Loading : AdminState()
+    data class Success(val message: String) : AdminState()
+    data class Error(val message: String) : AdminState()
+}
+
+class AdminViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val adminApi = ApiClient.getClient().create(AdminApi::class.java)
+
+    private val _state = MutableStateFlow<AdminState>(AdminState.Idle)
+    val state: StateFlow<AdminState> = _state
+
+    var verifiedTicket = mutableStateOf<TicketVerifyResponse?>(null)
+
+    fun createConcert(request: CreateConcertRequest) {
+        viewModelScope.launch {
+            _state.value = AdminState.Loading
+            try {
+                val response = adminApi.createConcert(request)
+                if (response.success) {
+                    _state.value = AdminState.Success("สร้างคอนเสิร์ตสำเร็จ!")
+                } else {
+                    _state.value = AdminState.Error(response.message)
+                }
+            } catch (e: Exception) {
+                _state.value = AdminState.Error("เกิดข้อผิดพลาด: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun verifyTicket(ticketId: String) {
+        viewModelScope.launch {
+            _state.value = AdminState.Loading
+            try {
+                val response = adminApi.verifyTicket(ticketId)
+                if (response.success && response.data != null) {
+                    verifiedTicket.value = response.data
+                    _state.value = AdminState.Success("ตั๋วถูกต้อง")
+                } else {
+                    verifiedTicket.value = null
+                    _state.value = AdminState.Error(response.message)
+                }
+            } catch (e: Exception) {
+                verifiedTicket.value = null
+                _state.value = AdminState.Error("ตั๋วไม่ถูกต้องหรือไม่พบในระบบ")
+            }
+        }
+    }
+
+    fun useTicket(ticketId: String) {
+        viewModelScope.launch {
+            _state.value = AdminState.Loading
+            try {
+                val response = adminApi.useTicket(ticketId)
+                if (response.success) {
+                    _state.value = AdminState.Success("เช็คอินสำเร็จ!")
+                    // Refresh current verified ticket state
+                    verifiedTicket.value = verifiedTicket.value?.copy(isUsed = true)
+                } else {
+                    _state.value = AdminState.Error(response.message)
+                }
+            } catch (e: Exception) {
+                _state.value = AdminState.Error("เกิดข้อผิดพลาด: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun resetState() {
+        _state.value = AdminState.Idle
+        verifiedTicket.value = null
+    }
+}

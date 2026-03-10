@@ -62,8 +62,12 @@ app.post("/api/auth/register", async (req, res) => {
             [username, hashedPassword, fullName, email, phone]
         );
 
+        const newUserId = result.insertId;
+        const token = jwt.sign({ userId: newUserId, role: 'Customer' }, JWT_SECRET, { expiresIn: '1d' });
+
         res.status(201).json(createResponse(true, "สมัครสมาชิกสำเร็จ", {
-            user: { id: result.insertId.toString(), fullName, email, phone, role: 'Customer', level: "Bronze" }
+            token: token,
+            user: { id: newUserId.toString(), fullName, email, phone, role: 'Customer', level: "Bronze" }
         }));
     } catch (err) {
         console.error(err);
@@ -183,12 +187,279 @@ app.get("/api/auth/user-stats/:userId", async (req, res) => {
     }
 });
 
-// --- API อื่นๆ (Concerts, Bookings) ---
+// --- ADMIN API ---
+
+// [GET] /api/concerts — List all concerts
 app.get("/api/concerts", async (req, res) => {
     try {
         const [results] = await pool.execute("SELECT concert_id AS concertId, title, description, venue_name AS venueName, show_date AS showDate, show_time AS showTime, poster_image_url AS posterImageUrl, status FROM concerts");
         res.json(createResponse(true, "Concerts fetched", results));
     } catch (err) { res.status(500).json(createResponse(false, err.message)); }
+});
+
+// [POST] /api/concerts — Create a new concert with zones
+app.post("/api/concerts", async (req, res) => {
+    try {
+        const { title, description, venueName, showDate, showTime, posterImageUrl, zones } = req.body;
+        if (!title || !venueName || !showDate || !showTime) {
+            return res.status(400).json(createResponse(false, "กรุณากรอกข้อมูลให้ครบถ้วน"));
+        }
+        const [result] = await pool.execute(
+            "INSERT INTO concerts (title, description, venue_name, show_date, show_time, poster_image_url, status) VALUES (?, ?, ?, ?, ?, ?, 'Active')",
+            [title, description || '', venueName, showDate, showTime, posterImageUrl || '']
+        );
+        const concertId = result.insertId;
+        // Insert zones if provided
+        if (zones && zones.length > 0) {
+            for (const zone of zones) {
+                await pool.execute(
+                    "INSERT INTO zones (concert_id, zone_name, type, price, capacity, color_code) VALUES (?, ?, ?, ?, ?, ?)",
+                    [concertId, zone.zoneName, zone.type || 'Seated', zone.price || 0, zone.capacity || 0, zone.colorCode || '#7B2FBE']
+                );
+            }
+        }
+        res.status(201).json(createResponse(true, "สร้างคอนเสิร์ตสำเร็จ", { concertId }));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json(createResponse(false, err.message));
+    }
+});
+
+// [GET] /api/concerts/:concertId — Get detailed info for a specific concert
+app.get("/api/concerts/:concertId", async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            "SELECT concert_id AS concertId, title, description, venue_name AS venueName, show_date AS showDate, show_time AS showTime, poster_image_url AS posterImageUrl, status FROM concerts WHERE concert_id = ?",
+            [req.params.concertId]
+        );
+        if (rows.length === 0) return res.status(404).json(createResponse(false, "ไม่พบคอนเสิร์ตนี้"));
+        res.json(createResponse(true, "Concert detail fetched", rows[0]));
+    } catch (err) { res.status(500).json(createResponse(false, err.message)); }
+});
+
+// [GET] /api/zones/:concertId — Get all zones for a specific concert
+app.get("/api/zones/:concertId", async (req, res) => {
+    try {
+        const concertId = req.params.concertId;
+        const [rows] = await pool.execute(`
+            SELECT z.zone_id AS zoneId, z.concert_id AS concertId, z.zone_name AS zoneName, 
+                   z.type, z.price, z.capacity, z.color_code AS colorCode,
+                   (SELECT COUNT(*) FROM seats s WHERE s.zone_id = z.zone_id AND s.is_reserved = 0) AS remainingSeats
+            FROM zones z
+            WHERE z.concert_id = ?
+        `, [concertId]);
+
+        // Map capacity to remainingSeats if seating is managed differently or if it's Standing with no specific seat records
+        const mappedRows = rows.map(r => ({
+            ...r,
+            // If the subquery found seats, use that count. If 0 seats found, might be a standing zone or uninitialized seated zone.
+            // For now, let's just send both and let the frontend decide, or override capacity.
+            capacity: r.type === 'Seated' ? r.remainingSeats : r.capacity
+        }));
+
+        res.json(createResponse(true, "Zones fetched", mappedRows));
+    } catch (err) { res.status(500).json(createResponse(false, err.message)); }
+});
+
+// [GET] /api/seats/:zoneId — Get all seats for a specific zone
+app.get("/api/seats/:zoneId", async (req, res) => {
+    try {
+        const zoneId = req.params.zoneId;
+        const [rows] = await pool.execute("SELECT * FROM seats WHERE zone_id = ?", [zoneId]);
+
+        const mapSeat = (r) => {
+            let active = 1;
+            if (r.is_active !== undefined && r.is_active !== null) {
+                active = (r.is_active === true || r.is_active == 1) ? 1 : 0;
+            }
+            let reserved = 0;
+            if (r.is_reserved !== undefined && r.is_reserved !== null) {
+                reserved = (r.is_reserved === true || r.is_reserved == 1) ? 1 : 0;
+            }
+
+            return {
+                seatId: r.seat_id,
+                zoneId: r.zone_id,
+                rowLabel: r.row_label,
+                numberLabel: r.number_label,
+                isAvailable: (r.is_available === true || r.is_available == 1) ? 1 : 0,
+                isActive: active,
+                isReserved: reserved
+            };
+        };
+
+        // If no seats but zone is Seated, try to auto-generate for testing
+        if (rows.length === 0) {
+            const [zones] = await pool.execute("SELECT * FROM zones WHERE zone_id = ?", [zoneId]);
+            if (zones.length > 0 && zones[0].type === 'Seated') {
+                const zone = zones[0];
+                const capacity = zone.capacity || 25;
+                const letters = "ABCDEFGHIJ";
+
+                for (let i = 0; i < capacity; i++) {
+                    const rowIdx = Math.floor(i / 5);
+                    const colIdx = (i % 5) + 1;
+                    const rowLabel = letters[rowIdx] || 'X';
+                    await pool.execute(
+                        "INSERT INTO seats (zone_id, row_label, number_label, is_available, is_active, is_reserved) VALUES (?, ?, ?, 1, 1, 0)",
+                        [zoneId, rowLabel, colIdx.toString()]
+                    );
+                }
+
+                // Fetch again after generation
+                const [newRows] = await pool.execute("SELECT * FROM seats WHERE zone_id = ?", [zoneId]);
+                return res.json(createResponse(true, "Seats generated and fetched", newRows.map(mapSeat)));
+            }
+        }
+
+        res.json(createResponse(true, "Seats fetched", rows.map(mapSeat)));
+    } catch (err) { res.status(500).json(createResponse(false, err.message)); }
+});
+
+// [POST] /api/bookings — Create a new booking
+app.post("/api/bookings", async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { userId, zoneId, seatIds, standingCount, totalAmount, paymentMethod } = req.body;
+
+        // 1. Create Booking
+        const [bookingResult] = await connection.execute(
+            "INSERT INTO bookings (user_id, total_amount, status, payment_method) VALUES (?, ?, 'Paid', ?)",
+            [userId, totalAmount, paymentMethod]
+        );
+        const bookingId = bookingResult.insertId;
+
+        // 2. Handle Seated (Specific Seats)
+        if (seatIds && seatIds.length > 0) {
+            for (const seatId of seatIds) {
+                // Check if already reserved (concurrency check)
+                const [seatRows] = await connection.execute("SELECT is_reserved FROM seats WHERE seat_id = ? FOR UPDATE", [seatId]);
+                if (seatRows[0].is_reserved === 1) {
+                    throw new Error(`Seat ${seatId} is already reserved.`);
+                }
+
+                // Insert Ticket
+                await connection.execute(
+                    "INSERT INTO tickets (booking_id, zone_id, seat_id) VALUES (?, ?, ?)",
+                    [bookingId, zoneId, seatId]
+                );
+
+                // Update Seat Status
+                await connection.execute(
+                    "UPDATE seats SET is_reserved = 1 WHERE seat_id = ?",
+                    [seatId]
+                );
+            }
+        }
+        // 3. Handle Standing (Quantity only)
+        else if (standingCount && standingCount > 0) {
+            for (let i = 0; i < standingCount; i++) {
+                await connection.execute(
+                    "INSERT INTO tickets (booking_id, zone_id, seat_id) VALUES (?, ?, NULL)",
+                    [bookingId, zoneId]
+                );
+            }
+        } else {
+            throw new Error("No seats or standing count provided.");
+        }
+
+        await connection.commit();
+        res.json(createResponse(true, "จองสำเร็จ", { bookingId, status: "Paid" }));
+
+    } catch (err) {
+        await connection.rollback();
+        console.error("Booking Error:", err);
+        res.status(500).json(createResponse(false, err.message));
+    } finally {
+        connection.release();
+    }
+});
+
+// [GET] /api/tickets/:ticketId — Verify a ticket for scanning
+app.get("/api/tickets/:ticketId", async (req, res) => {
+    try {
+        const ticketId = req.params.ticketId;
+        const [rows] = await pool.execute(`
+            SELECT t.ticket_id AS ticketId, u.full_name AS holderName,
+                   c.title AS concertTitle, z.zone_name AS zoneName,
+                   s.row_label AS rowLabel, s.number_label AS numberLabel,
+                   c.show_date AS showDate, c.show_time AS showTime,
+                   t.is_used AS isUsed
+            FROM tickets t
+            JOIN bookings b ON t.booking_id = b.booking_id
+            JOIN users u ON b.user_id = u.user_id
+            JOIN zones z ON t.zone_id = z.zone_id
+            JOIN concerts c ON z.concert_id = c.concert_id
+            LEFT JOIN seats s ON t.seat_id = s.seat_id
+            WHERE t.ticket_id = ?
+        `, [ticketId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json(createResponse(false, "ไม่พบตั๋วนี้ในระบบ"));
+        }
+        const t = rows[0];
+        const seatLabel = (t.rowLabel && t.numberLabel) ? `${t.rowLabel}-${t.numberLabel}` : null;
+
+        res.json(createResponse(true, "ต๋วถูกต้อง", {
+            ticketId: t.ticketId,
+            holderName: t.holderName,
+            concertTitle: t.concertTitle,
+            zoneName: t.zoneName,
+            seatLabel,
+            showDate: t.showDate,
+            showTime: t.showTime,
+            isUsed: t.isUsed === 1
+        }));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json(createResponse(false, err.message));
+    }
+});
+
+// [PUT] /api/tickets/:ticketId/use — Mark a ticket as used (Check-In)
+app.put("/api/tickets/:ticketId/use", async (req, res) => {
+    try {
+        const ticketId = req.params.ticketId;
+        const [rows] = await pool.execute("SELECT is_used FROM tickets WHERE ticket_id = ?", [ticketId]);
+
+        if (rows.length === 0) return res.status(404).json(createResponse(false, "ไม่พบตั๋วนี้"));
+        if (rows[0].is_used === 1) return res.status(400).json(createResponse(false, "ตั๋วนี้ถูกใช้งานไปแล้ว"));
+
+        await pool.execute("UPDATE tickets SET is_used = 1 WHERE ticket_id = ?", [ticketId]);
+        res.json(createResponse(true, "เช็คอินสำเร็จ!"));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json(createResponse(false, err.message));
+    }
+});
+
+// [GET] /api/tickets/user/:userId — Get all tickets for a specific user
+app.get("/api/tickets/user/:userId", async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const [rows] = await pool.execute(`
+            SELECT t.ticket_id AS ticketId,
+                   c.title AS concertTitle, c.poster_image_url AS posterUrl,
+                   z.zone_name AS zoneName,
+                   s.row_label AS rowLabel, s.number_label AS numberLabel,
+                   c.show_date AS showDate, c.show_time AS showTime,
+                   c.venue_name AS venueName
+            FROM tickets t
+            JOIN bookings b ON t.booking_id = b.booking_id
+            JOIN zones z ON t.zone_id = z.zone_id
+            JOIN concerts c ON z.concert_id = c.concert_id
+            LEFT JOIN seats s ON t.seat_id = s.seat_id
+            WHERE b.user_id = ?
+            ORDER BY b.booking_date DESC
+        `, [userId]);
+
+        res.json(createResponse(true, "Tickets fetched", rows));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json(createResponse(false, err.message));
+    }
 });
 
 const PORT = process.env.PORT || 8080;

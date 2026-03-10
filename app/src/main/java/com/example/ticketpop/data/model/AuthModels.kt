@@ -13,7 +13,7 @@ data class RegisterRequest(
 )
 
 data class AuthResponse(
-    val token: String,
+    val token: String?,
     val user: UserProfile
 )
 

@@ -22,12 +22,14 @@ fun OrderSummaryScreen(
     concert: Concert,       // รับข้อมูลจาก Concert.kt
     zone: Zone,             // รับข้อมูลจาก Zone.kt
     selectedSeats: List<Seat>, // รับรายชื่อที่นั่งจาก Seat.kt
+    standingCount: Int = 0,
     onNext: (String) -> Unit
 ) {
     var selectedMethod by remember { mutableStateOf("PromptPay") }
+    val isStanding = zone.type == "Standing"
 
     // คำนวณราคาสรุป
-    val ticketCount = selectedSeats.size
+    val ticketCount = if (isStanding) standingCount else selectedSeats.size
     val subTotal = zone.price * ticketCount
     val fee = 40.0
     val totalAmount = subTotal + fee
@@ -50,8 +52,16 @@ fun OrderSummaryScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // รายชื่อที่นั่ง (วนลูปจาก Seat.kt)
-                val seatLabels = selectedSeats.joinToString(", ") { "${it.rowLabel}${it.numberLabel}" }
-                SummaryRow("ที่นั่ง", "โซน ${zone.zoneName} ($seatLabels)")
+                val seatLabels = if (isStanding) {
+                    "บัตรยืนจำนวน $standingCount ใบ"
+                } else {
+                    selectedSeats.joinToString(", ") { "${it.rowLabel ?: ""}${it.numberLabel}" }
+                }
+                
+                SummaryRow("ที่นั่ง", "โซน ${zone.zoneName} ${if (!isStanding) "($seatLabels)" else ""}")
+                if (isStanding) {
+                    SummaryRow("ประเภท", "Standing")
+                }
 
                 // ราคาและจำนวน
                 SummaryRow("ราคาต่อที่นั่ง", "${zone.price} บาท")
@@ -156,8 +166,8 @@ fun OrderSummaryPreview() {
 
     // 3. สร้างข้อมูลที่นั่งสมมติ (2 ที่นั่ง)
     val mockSeats = listOf(
-        Seat(seatId = 1, zoneId = 1, rowLabel = "B", numberLabel = "02", isActive = true, isReserved = false),
-        Seat(seatId = 2, zoneId = 1, rowLabel = "B", numberLabel = "03", isActive = true, isReserved = false)
+        Seat(seatId = 1, zoneId = 1, rowLabel = "B", numberLabel = "02", isActive = 1, isReserved = 0),
+        Seat(seatId = 2, zoneId = 1, rowLabel = "B", numberLabel = "03", isActive = 1, isReserved = 0)
     )
 
     // 4. เรียกใช้ Screen พร้อมส่งข้อมูล Mock เข้าไป

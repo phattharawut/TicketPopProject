@@ -27,7 +27,7 @@ object Constants {
     const val ROUTE_SEAT_MAP       = "seat/{zoneId}"
     const val ROUTE_STANDING       = "standing/{zoneId}"
     const val ROUTE_ORDER_SUMMARY  = "order_summary"
-    const val ROUTE_PAYMENT        = "payment"
+    const val ROUTE_PAYMENT        = "payment/{method}"
     const val ROUTE_SUCCESS        = "success/{bookingId}"
     const val ROUTE_TICKET_QR      = "ticket/{ticketId}"
     const val ROUTE_TICKET_HISTORY = "ticket_history"

@@ -8,7 +8,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material3.*
+import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 
 import androidx.compose.runtime.Composable
@@ -28,6 +30,7 @@ import com.example.ticketpop.data.model.Concert
 
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConcertDetailScreen(
     concert: Concert,
@@ -38,6 +41,17 @@ fun ConcertDetailScreen(
 ) {
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("รายละเอียดคอนเสิร์ต", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        },
 
         bottomBar = {
             Surface(shadowElevation = 10.dp) {
@@ -60,7 +74,7 @@ fun ConcertDetailScreen(
                         )
 
                         Text(
-                            text = "฿ ${concert.lowestPrice}",
+                            text = "฿ ${concert.minPrice ?: 0.0}",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -85,13 +99,15 @@ fun ConcertDetailScreen(
                 .verticalScroll(rememberScrollState())
         ) {
 
-            Image(
-                painter = painterResource(R.drawable.poster),
-                contentDescription = null,
+            AsyncImage(
+                model = concert.posterImageUrl,
+                contentDescription = "Concert Poster",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(R.drawable.poster),
+                error = painterResource(R.drawable.poster)
             )
 
             Column(
@@ -107,7 +123,7 @@ fun ConcertDetailScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = concert.description,
+                    text = concert.description ?: "",
                     color = Color.Gray
                 )
 

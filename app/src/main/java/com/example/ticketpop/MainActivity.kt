@@ -17,6 +17,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.ticketpop.ui.admin.AdminDashboardScreen
+import com.example.ticketpop.ui.admin.AdminCreateConcertScreen
+import com.example.ticketpop.ui.admin.AdminScanScreen
+import com.example.ticketpop.ui.admin.AdminViewModel
 import com.example.ticketpop.ui.auth.AuthViewModel
 import com.example.ticketpop.ui.auth.LoginScreen
 import com.example.ticketpop.ui.auth.ProfileScreen
@@ -28,6 +31,12 @@ import com.example.ticketpop.ui.theme.TICKETPOPTheme
 import com.example.ticketpop.utils.Constants
 import com.example.ticketpop.ui.concert.*
 import com.example.ticketpop.ui.seat.*
+import com.example.ticketpop.ui.payment.PaymentViewModel
+import com.example.ticketpop.ui.payment.OrderSummaryScreen
+import com.example.ticketpop.ui.payment.PaymentScreen
+import com.example.ticketpop.ui.payment.PaymentSuccessScreen
+import com.example.ticketpop.ui.ticket.MyTicketScreen
+import com.example.ticketpop.ui.ticket.TicketViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,8 +54,11 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
+    val adminViewModel: AdminViewModel = viewModel()
     val concertViewModel: ConcertDetailViewModel = viewModel()
     val seatViewModel: SeatViewModel = viewModel()
+    val paymentViewModel: PaymentViewModel = viewModel()
+    val ticketViewModel: TicketViewModel = viewModel()
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -84,7 +96,7 @@ fun AppNavigation() {
                                 popUpTo(Constants.ROUTE_LOGIN) { inclusive = true }
                             }
                         } else {
-                            navController.navigate(Constants.ROUTE_PROFILE) {
+                            navController.navigate(Constants.ROUTE_HOME) {
                                 popUpTo(Constants.ROUTE_LOGIN) { inclusive = true }
                             }
                         }
@@ -129,13 +141,44 @@ fun AppNavigation() {
                         }
                     },
                     onNavigateToCreateConcert = {
-                        // navController.navigate(Constants.ROUTE_ADMIN_CREATE)
+                        navController.navigate(Constants.ROUTE_ADMIN_CREATE)
+                    },
+                    onNavigateToScan = {
+                        navController.navigate(Constants.ROUTE_ADMIN_SCAN)
                     }
+                )
+            }
+
+            composable(Constants.ROUTE_ADMIN_CREATE) {
+                AdminCreateConcertScreen(
+                    viewModel = adminViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Constants.ROUTE_ADMIN_SCAN) {
+                AdminScanScreen(
+                    viewModel = adminViewModel,
+                    onBack = { navController.popBackStack() }
                 )
             }
 
             composable(Constants.ROUTE_HOME) {
                 HomeScreen(navController = navController)
+            }
+
+            composable(Constants.ROUTE_MY_TICKET) {
+                val user = authViewModel.currentUser.value
+                if (user != null) {
+                    MyTicketScreen(
+                        viewModel = ticketViewModel,
+                        userId = user.id.toInt()
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")
+                    }
+                }
             }
 
             // Concert Routes
@@ -228,6 +271,69 @@ fun AppNavigation() {
                     viewModel = seatViewModel,
                     zoneId = zoneId,
                     navController = navController
+                )
+            }
+            
+            composable(Constants.ROUTE_ORDER_SUMMARY) {
+                val concert by concertViewModel.concert
+                val zone = seatViewModel.selectedZone
+                val selectedSeats = seatViewModel.selectedSeats
+                
+                if (concert != null && zone != null) {
+                    OrderSummaryScreen(
+                        concert = concert!!,
+                        zone = zone,
+                        selectedSeats = selectedSeats,
+                        standingCount = seatViewModel.standingCount,
+                        onNext = { method ->
+                            navController.navigate("payment/$method")
+                        }
+                    )
+                }
+            }
+
+            composable(
+                route = Constants.ROUTE_PAYMENT,
+                arguments = listOf(navArgument("method") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val method = backStackEntry.arguments?.getString("method") ?: "PromptPay"
+                val user = authViewModel.currentUser.value
+                val concert = concertViewModel.concert.value
+                val zone = seatViewModel.selectedZone
+                
+                PaymentScreen(
+                    paymentMethod = method,
+                    onSuccess = {
+                        if (user != null && concert != null && zone != null) {
+                            paymentViewModel.createBooking(
+                                userId = user.id.toInt(),
+                                concertId = concert.concertId,
+                                zoneId = zone.zoneId,
+                                seatIds = seatViewModel.selectedSeats.map { it.seatId },
+                                standingCount = if (zone.type == "Standing") seatViewModel.standingCount else null,
+                                totalAmount = seatViewModel.getTotalPrice() + 40.0,
+                                paymentMethod = method,
+                                onSuccess = { bookingId ->
+                                    navController.navigate("success/$bookingId") {
+                                        popUpTo(Constants.ROUTE_HOME)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                )
+            }
+
+            composable(
+                route = Constants.ROUTE_SUCCESS,
+                arguments = listOf(navArgument("bookingId") { type = NavType.IntType })
+            ) {
+                PaymentSuccessScreen(
+                    onGoHome = {
+                        navController.navigate(Constants.ROUTE_HOME) {
+                            popUpTo(0)
+                        }
+                    }
                 )
             }
         }

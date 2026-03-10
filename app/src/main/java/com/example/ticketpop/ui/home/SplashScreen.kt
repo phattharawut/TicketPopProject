@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(navController: NavController) {
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // Animation fade-in
     val alpha by animateFloatAsState(
@@ -26,21 +27,17 @@ fun SplashScreen(navController: NavController) {
         label = "splash_alpha"
     )
 
-    // ตรวจ JWT แล้ว navigate
+    // ตรวจ JWT จาก SharedPreferences แล้ว navigate
     LaunchedEffect(Unit) {
         delay(1500) // รอให้ animation เล่นจบ
 
-        // TODO: เปลี่ยนเป็นอ่านจาก SharedPreferences จริงเมื่อคนที่ 2 ทำ AuthViewModel เสร็จ
-        // val token = prefs.getString(Constants.KEY_JWT_TOKEN, null)
-        val token: String? = null  // Mock: ยังไม่มี token
-
-        if (token != null) {
+        val session = com.example.ticketpop.utils.SessionManager(context)
+        if (session.isLoggedIn()) {
             navController.navigate(Constants.ROUTE_HOME) {
                 popUpTo(Constants.ROUTE_SPLASH) { inclusive = true }
             }
         } else {
-            // เปลี่ยนจาก ROUTE_LOGIN → ROUTE_HOME ก่อน เพราะยังไม่มี route login
-            navController.navigate(Constants.ROUTE_HOME) {
+            navController.navigate(Constants.ROUTE_LOGIN) {
                 popUpTo(Constants.ROUTE_SPLASH) { inclusive = true }
             }
         }

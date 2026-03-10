@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.ticketpop.utils.Constants
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,7 +84,7 @@ fun StandingZoneScreen(
                         color = Color(0xFFBB86FC)
                     )
                     Button(
-                        onClick = {/* navController.navigate(Constants.ROUTE_ORDER_SUMMARY) */},
+                        onClick = { navController.navigate(Constants.ROUTE_ORDER_SUMMARY) },
                         enabled = standingCount > 0,
                         modifier = Modifier.height(48.dp),
                         colors = ButtonDefaults.buttonColors(

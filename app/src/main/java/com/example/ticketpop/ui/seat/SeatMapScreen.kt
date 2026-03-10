@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ticketpop.data.model.Seat
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ButtonDefaults
+import com.example.ticketpop.utils.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +74,7 @@ fun SeatMapScreen(
 
         bottomBar = {
             if (viewModel.selectedSeats.isNotEmpty()) {
-                SeatSummaryBar(viewModel)
+                SeatSummaryBar(viewModel, navController)
             }
         }
     ) { padding ->
@@ -165,7 +166,7 @@ fun SeatBox(seat: Seat, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun SeatSummaryBar(viewModel: SeatViewModel) {
+fun SeatSummaryBar(viewModel: SeatViewModel, navController: NavController) {
     Surface(shadowElevation = 15.dp) {
         Row(
             modifier = Modifier
@@ -218,7 +219,7 @@ fun SeatSummaryBar(viewModel: SeatViewModel) {
                 )
             }
             Button(
-                onClick = { /* navController.navigate(Constants.ROUTE_ORDER_SUMMARY) */ },
+                onClick = { navController.navigate(Constants.ROUTE_ORDER_SUMMARY) },
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF8B5CF6)
