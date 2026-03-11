@@ -32,7 +32,8 @@ class AuthRepository(private val session: SessionManager) {
     }
 
     suspend fun getUserStats(userId: String): UserStats {
-        return authApi.getUserStats(userId)
+        val response = authApi.getUserStats(userId)
+        return response.data ?: throw Exception(response.message)
     }
 
     suspend fun updateProfile(userId: String, fullName: String, phone: String): UserProfile {

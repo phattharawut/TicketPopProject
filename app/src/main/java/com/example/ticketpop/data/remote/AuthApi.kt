@@ -17,7 +17,7 @@ interface AuthApi {
     suspend fun updateProfile(@Body request: UpdateProfileRequest): ApiResponse<UserProfile>
 
     @GET("api/auth/user-stats/{userId}")
-    suspend fun getUserStats(@Path("userId") userId: String): UserStats
+    suspend fun getUserStats(@Path("userId") userId: String): ApiResponse<UserStats>
 
     @POST("api/auth/change-password")
     suspend fun changePassword(@Body request: ChangePasswordRequest): ApiResponse<Unit>

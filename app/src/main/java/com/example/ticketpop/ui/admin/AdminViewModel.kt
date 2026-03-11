@@ -210,6 +210,22 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteConcert(concertId: Int, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = adminApi.deleteConcert(concertId)
+                if (response.success) {
+                    loadDashboardData()
+                    onSuccess()
+                } else {
+                    _state.value = AdminState.Error(response.message)
+                }
+            } catch (e: Exception) {
+                _state.value = AdminState.Error("ลบไม่สำเร็จ: ${e.localizedMessage}")
+            }
+        }
+    }
+
     fun verifyTicket(ticketId: String) {
         viewModelScope.launch {
             _state.value = AdminState.Loading

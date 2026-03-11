@@ -28,4 +28,7 @@ interface AdminApi {
     
     @PUT("api/concerts/{concertId}")
     suspend fun updateConcert(@Path("concertId") concertId: Int, @Body request: EditConcertRequest): ApiResponse<Any>
+
+    @DELETE("api/concerts/{concertId}")
+    suspend fun deleteConcert(@Path("concertId") concertId: Int): ApiResponse<Any>
 }

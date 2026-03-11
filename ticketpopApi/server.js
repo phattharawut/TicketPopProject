@@ -200,11 +200,11 @@ app.get("/api/auth/user-stats/:userId", async (req, res) => {
         const [spending] = await pool.execute("SELECT SUM(total_amount) as totalSpending FROM bookings WHERE user_id = ? AND status = 'Paid'", [userId]);
         const [history] = await pool.execute("SELECT COUNT(*) as historyCount FROM bookings WHERE user_id = ? AND status != 'Cancelled'", [userId]);
 
-        res.json({
+        res.json(createResponse(true, "ok", {
             ticketCount: bookings[0].ticketCount.toString(),
             points: (spending[0].totalSpending || 0).toLocaleString(),
             historyCount: history[0].historyCount.toString()
-        });
+        }));
     } catch (err) {
         console.error("Stats Error:", err);
         res.status(500).json(createResponse(false, "Error fetching stats"));
@@ -226,6 +226,7 @@ app.get("/api/concerts", async (req, res) => {
                    MIN(z.price) AS minPrice
             FROM concerts c
             LEFT JOIN zones z ON c.concert_id = z.concert_id
+            WHERE c.status NOT IN ('Ended', 'Cancelled')
             GROUP BY c.concert_id
         `);
         res.json(createResponse(true, "Concerts fetched", results));
@@ -264,7 +265,7 @@ app.post("/api/concerts", async (req, res) => {
         }
 
         const [concertResult] = await connection.execute(
-            "INSERT INTO concerts (title, description, venue_name, show_date, show_time, poster_image_url, status) VALUES (?, ?, ?, ?, ?, ?, 'Active')",
+            "INSERT INTO concerts (title, description, venue_name, show_date, show_time, poster_image_url, status) VALUES (?, ?, ?, ?, ?, ?, 'OnSale')",
             [title, description || "", venueName, showDate, showTime || "00:00", posterImageUrl || null]
         );
         const concertId = concertResult.insertId;
@@ -350,10 +351,10 @@ app.get("/api/concerts/:concertId/zones-seats", async (req, res) => {
     }
 });
 
+// [PUT] /api/concerts/reorder — ต้องอยู่ก่อน /:concertId เพื่อป้องกัน route conflict
 app.put("/api/concerts/reorder", async (req, res) => {
     try {
         const { orders } = req.body;
-        // orders = [{ concertId: 1, sortOrder: 0 }, ...]
         for (const item of orders) {
             await pool.execute(
                 "UPDATE concerts SET sort_order = ? WHERE concert_id = ?",
@@ -361,6 +362,42 @@ app.put("/api/concerts/reorder", async (req, res) => {
             );
         }
         res.json(createResponse(true, "เรียงลำดับสำเร็จ"));
+    } catch (err) {
+        res.status(500).json(createResponse(false, err.message));
+    }
+});
+
+// [PUT] /api/concerts/:concertId — Admin แก้ไขคอนเสิร์ต
+app.put("/api/concerts/:concertId", async (req, res) => {
+    try {
+        const concertId = req.params.concertId;
+        const { title, description, venueName, showDate, showTime, posterImageUrl, status } = req.body;
+
+        if (!title || !venueName || !showDate) {
+            return res.status(400).json(createResponse(false, "กรุณากรอกข้อมูลให้ครบ"));
+        }
+
+        const validStatuses = ['Upcoming', 'OnSale', 'SoldOut', 'Ended'];
+        const concertStatus = validStatuses.includes(status) ? status : 'OnSale';
+
+        await pool.execute(
+            "UPDATE concerts SET title=?, description=?, venue_name=?, show_date=?, show_time=?, poster_image_url=?, status=? WHERE concert_id=?",
+            [title, description || "", venueName, showDate, showTime || "00:00", posterImageUrl || null, concertStatus, concertId]
+        );
+        res.json(createResponse(true, "แก้ไขคอนเสิร์ตสำเร็จ"));
+    } catch (err) {
+        res.status(500).json(createResponse(false, err.message));
+    }
+});
+
+// [DELETE] /api/concerts/:concertId — Soft delete (เปลี่ยน status เป็น Cancelled)
+app.delete("/api/concerts/:concertId", async (req, res) => {
+    try {
+        const concertId = req.params.concertId;
+        const [[concert]] = await pool.execute("SELECT concert_id FROM concerts WHERE concert_id = ?", [concertId]);
+        if (!concert) return res.status(404).json(createResponse(false, "ไม่พบคอนเสิร์ตนี้"));
+        await pool.execute("UPDATE concerts SET status = 'Cancelled' WHERE concert_id = ?", [concertId]);
+        res.json(createResponse(true, "ลบคอนเสิร์ตสำเร็จ"));
     } catch (err) {
         res.status(500).json(createResponse(false, err.message));
     }
@@ -440,6 +477,18 @@ app.get("/api/seats/:zoneId", async (req, res) => {
     } catch (err) { res.status(500).json(createResponse(false, err.message)); }
 });
 
+// [PUT] /api/seats/:seatId/toggle — Admin toggle is_active ของ seat
+app.put("/api/seats/:seatId/toggle", async (req, res) => {
+    try {
+        const seatId = req.params.seatId;
+        const [[seat]] = await pool.execute("SELECT is_active FROM seats WHERE seat_id = ?", [seatId]);
+        if (!seat) return res.status(404).json(createResponse(false, "ไม่พบที่นั่งนี้"));
+        const newActive = seat.is_active ? 0 : 1;
+        await pool.execute("UPDATE seats SET is_active = ? WHERE seat_id = ?", [newActive, seatId]);
+        res.json(createResponse(true, "Toggle สำเร็จ", { isActive: newActive }));
+    } catch (err) { res.status(500).json(createResponse(false, err.message)); }
+});
+
 // ==========================================
 // --- BOOKINGS ---
 // ==========================================
@@ -507,7 +556,7 @@ app.get("/api/users/:userId/tickets", async (req, res) => {
                    s.number_label AS numberLabel, c.title AS concertTitle,
                    c.poster_image_url AS posterUrl,
                    DATE_FORMAT(c.show_date, '%Y-%m-%d') AS showDate, c.show_time AS showTime,
-                   c.venue_name AS venueName
+                   c.venue_name AS venueName, c.status AS concertStatus
             FROM tickets t
             JOIN bookings b ON t.booking_id = b.booking_id
             JOIN zones z ON t.zone_id = z.zone_id
@@ -628,7 +677,7 @@ app.get("/api/admin/stats", async (req, res) => {
             "SELECT COALESCE(SUM(total_amount), 0) AS totalRevenue FROM bookings WHERE status = 'Paid'"
         );
         const [[concertRow]] = await pool.execute(
-            "SELECT COUNT(*) AS totalConcerts FROM concerts WHERE status = 'Active'"
+            "SELECT COUNT(*) AS totalConcerts FROM concerts WHERE status NOT IN ('Ended', 'Cancelled')"
         );
         const [[usedRow]] = await pool.execute(
             "SELECT COUNT(*) AS usedTickets FROM tickets WHERE is_used = 1"

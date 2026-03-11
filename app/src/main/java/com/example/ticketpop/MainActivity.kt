@@ -222,6 +222,27 @@ fun AppNavigation() {
                 }
             }
 
+            composable(
+                route = Constants.ROUTE_MY_TICKETS_TAB,
+                arguments = listOf(navArgument("tab") { type = NavType.IntType; defaultValue = 0 })
+            ) { backStackEntry ->
+                val user = authViewModel.currentUser.value
+                val userId = user?.id?.toIntOrNull()
+                val initialTab = backStackEntry.arguments?.getInt("tab") ?: 0
+                if (user != null && userId != null) {
+                    MyTicketsScreen(
+                        navController = navController,
+                        userId = userId,
+                        viewModel = ticketViewModel,
+                        initialTab = initialTab
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")
+                    }
+                }
+            }
+
             // Concert Routes
             composable(
                 route = Constants.ROUTE_CONCERT_DETAIL,

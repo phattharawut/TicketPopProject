@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,7 +33,8 @@ import androidx.compose.runtime.mutableIntStateOf
 fun MyTicketsScreen(
     navController: NavController,
     userId: Int,
-    viewModel: TicketViewModel = viewModel()
+    viewModel: TicketViewModel = viewModel(),
+    initialTab: Int = 0
 ) {
     LaunchedEffect(userId) {
         viewModel.loadMyTickets(userId)
@@ -40,7 +42,7 @@ fun MyTicketsScreen(
 
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(initialTab) }
     val tabs = listOf("บัตรของฉัน", "ประวัติการเข้าชม")
 
     Box(
@@ -51,12 +53,20 @@ fun MyTicketsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
 
             // ==================== HEADER ====================
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
-                    .padding(horizontal = 24.dp, vertical = 20.dp)
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "ย้อนกลับ",
+                        tint = Color(0xFF1A1A2E)
+                    )
+                }
                 Text(
                     text = "บัตรของฉัน",
                     fontWeight = FontWeight.Bold,
@@ -172,11 +182,13 @@ fun MyTicketsScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(tickets) { ticket ->
+                                val isCancelled = ticket.concertStatus == "Cancelled"
                                 TicketCard(
                                     ticket = ticket,
                                     isUsed = ticket.showDate < viewModel.getTodayDate(),
+                                    isCancelled = isCancelled,
                                     onClick = {
-                                        if (ticket.showDate >= viewModel.getTodayDate()) {
+                                        if (!isCancelled && ticket.showDate >= viewModel.getTodayDate()) {
                                             navController.navigate(
                                                 Constants.ROUTE_TICKET_QR
                                                     .replace(
@@ -201,8 +213,15 @@ fun MyTicketsScreen(
 fun TicketCard(
     ticket: Ticket,
     isUsed: Boolean,
+    isCancelled: Boolean = false,
     onClick: () -> Unit
 ) {
+    val gradientBrush = when {
+        isCancelled -> Brush.horizontalGradient(listOf(Color(0xFF8B0000), Color(0xFFB71C1C)))
+        isUsed -> Brush.horizontalGradient(listOf(Color(0xFF6B6B8A), Color(0xFF4A4A6A)))
+        else -> Brush.horizontalGradient(listOf(Color(0xFF7C5CFF), Color(0xFF4B6EFF)))
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -217,26 +236,36 @@ fun TicketCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        brush = if (isUsed)
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF6B6B8A), Color(0xFF4A4A6A))
-                            )
-                        else
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF7C5CFF), Color(0xFF4B6EFF))
-                            ),
-                        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                    )
+                    .background(brush = gradientBrush, shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .padding(horizontal = 20.dp, vertical = 18.dp)
             ) {
                 Column {
-                    Text(
-                        text = ticket.concertTitle,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color.White
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = ticket.concertTitle,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color.White,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isCancelled) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color.White.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = "ยกเลิก",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${ticket.showDate}  •  ${ticket.venueName}",
@@ -267,11 +296,11 @@ fun TicketCard(
                             else "ยืนชม",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1A1A2E)
+                            color = if (isCancelled) Color(0xFFAAAAAA) else Color(0xFF1A1A2E)
                         )
                     }
 
-                    if (!isUsed) {
+                    if (!isUsed && !isCancelled) {
                         Text(
                             text = "1 ที่นั่ง",
                             fontSize = 13.sp,
@@ -305,10 +334,18 @@ fun TicketCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (isUsed) "จบไปแล้ว" else "แตะเพื่อดู QR Code",
+                        text = when {
+                            isCancelled -> "คอนเสิร์ตถูกยกเลิก"
+                            isUsed -> "จบไปแล้ว"
+                            else -> "แตะเพื่อดู QR Code"
+                        },
                         fontSize = 13.sp,
-                        fontWeight = if (isUsed) FontWeight.Normal else FontWeight.Bold,
-                        color = if (isUsed) Color(0xFF888899) else Color(0xFF6B4EFF)
+                        fontWeight = if (!isUsed && !isCancelled) FontWeight.Bold else FontWeight.Normal,
+                        color = when {
+                            isCancelled -> Color(0xFFE53935)
+                            isUsed -> Color(0xFF888899)
+                            else -> Color(0xFF6B4EFF)
+                        }
                     )
                 }
             }

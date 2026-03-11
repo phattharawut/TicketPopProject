@@ -3,6 +3,7 @@
 package com.example.ticketpop.ui.ticket
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -213,9 +214,11 @@ fun SummaryItem(value: String, label: String) {
 
 // ==================== HISTORY CARD ====================
 @Composable
-fun HistoryCard(ticket: Ticket) {
+fun HistoryCard(ticket: Ticket, onClick: () -> Unit = {}) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)

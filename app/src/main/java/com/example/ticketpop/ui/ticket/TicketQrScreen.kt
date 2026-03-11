@@ -2,6 +2,7 @@
 
 package com.example.ticketpop.ui.ticket
 
+import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,6 +29,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.ticketpop.data.model.Ticket
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
 
 @Composable
 fun TicketQrScreen(
@@ -276,8 +281,17 @@ fun TicketQrContent(ticket: Ticket, onBack: () -> Unit = {}) {
                                 .padding(12.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Compose-based QR Mockup
-                            QrMockupPattern()
+                            val qrContent = "TICKETPOP|${ticket.bookingId}|${ticket.ticketId}|${ticket.zoneName}"
+                            val qrBitmap = remember(qrContent) { generateQrBitmap(qrContent) }
+                            if (qrBitmap != null) {
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "QR Code",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                CircularProgressIndicator(color = Color(0xFF6B4EFF))
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -328,41 +342,20 @@ fun TicketQrContent(ticket: Ticket, onBack: () -> Unit = {}) {
 }
 
 
-// ==================== QR MOCKUP PATTERN ====================
-@Composable
-fun QrMockupPattern() {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val size = size.width
-        val cellSize = size / 20
-        
-        // QR-like "eye" squares (Top-left, Top-right, Bottom-left)
-        fun drawEye(offset: androidx.compose.ui.geometry.Offset) {
-            val eyeSize = cellSize * 7
-            drawRect(Color.Black, offset, androidx.compose.ui.geometry.Size(eyeSize, eyeSize))
-            drawRect(Color.White, offset + androidx.compose.ui.geometry.Offset(cellSize, cellSize), androidx.compose.ui.geometry.Size(eyeSize - cellSize * 2, eyeSize - cellSize * 2))
-            drawRect(Color.Black, offset + androidx.compose.ui.geometry.Offset(cellSize * 2, cellSize * 2), androidx.compose.ui.geometry.Size(eyeSize - cellSize * 4, eyeSize - cellSize * 4))
-        }
-
-        drawEye(androidx.compose.ui.geometry.Offset(0f, 0f))
-        drawEye(androidx.compose.ui.geometry.Offset(size - cellSize * 7, 0f))
-        drawEye(androidx.compose.ui.geometry.Offset(0f, size - cellSize * 7))
-
-        // Random bits
-        val random = java.util.Random(123)
-        for (i in 0 until 20) {
-            for (j in 0 until 20) {
-                // Skip areas with eyes
-                if ((i < 8 && j < 8) || (i > 11 && j < 8) || (i < 8 && j > 11)) continue
-                
-                if (random.nextBoolean()) {
-                    drawRect(
-                        Color.Black,
-                        androidx.compose.ui.geometry.Offset(i * cellSize, j * cellSize),
-                        androidx.compose.ui.geometry.Size(cellSize, cellSize)
-                    )
-                }
+// ==================== QR CODE GENERATOR ====================
+fun generateQrBitmap(content: String, size: Int = 512): Bitmap? {
+    return try {
+        val hints = mapOf(EncodeHintType.MARGIN to 1)
+        val bitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565)
+        for (x in 0 until size) {
+            for (y in 0 until size) {
+                bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
             }
         }
+        bitmap
+    } catch (e: Exception) {
+        null
     }
 }
 

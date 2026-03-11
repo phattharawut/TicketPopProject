@@ -69,7 +69,7 @@ fun AdminEditConcertScreen(
     var venueName by remember { mutableStateOf("") }
     var showDate by remember { mutableStateOf("") }
     var showTime by remember { mutableStateOf("19:00") }
-    var status by remember { mutableStateOf("Active") }
+    var status by remember { mutableStateOf("OnSale") }
 
     // Load full concert list on start
     LaunchedEffect(Unit) {
@@ -91,6 +91,7 @@ fun AdminEditConcertScreen(
     // Dialog visibility
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val posterImageUrl = if (viewModel.uploadedPosterUrl.value.isNotEmpty()) {
         viewModel.uploadedPosterUrl.value
@@ -306,22 +307,28 @@ fun AdminEditConcertScreen(
             AdminEditSectionHeader(icon = Icons.Default.Info, title = "สถานะคอนเสิร์ต")
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 AdminEditStatusChip(
-                    text = "เปิดขาย (Active)",
-                    selected = status == "Active",
+                    text = "กำลังจะมา",
+                    selected = status == "Upcoming",
+                    color = AdminSubText,
+                    onClick = { status = "Upcoming" }
+                )
+                AdminEditStatusChip(
+                    text = "เปิดขาย",
+                    selected = status == "OnSale",
                     color = AdminGreen,
-                    onClick = { status = "Active" }
+                    onClick = { status = "OnSale" }
                 )
                 AdminEditStatusChip(
-                    text = "ยกเลิก (Cancelled)",
-                    selected = status == "Cancelled",
-                    color = AdminRed,
-                    onClick = { status = "Cancelled" }
-                )
-                AdminEditStatusChip(
-                    text = "ที่นั่งอาจเต็ม (SoldOut)",
+                    text = "ขายหมด",
                     selected = status == "SoldOut",
                     color = AdminAmber,
                     onClick = { status = "SoldOut" }
+                )
+                AdminEditStatusChip(
+                    text = "จบแล้ว",
+                    selected = status == "Ended",
+                    color = AdminRed,
+                    onClick = { status = "Ended" }
                 )
             }
 
@@ -384,8 +391,80 @@ fun AdminEditConcertScreen(
                 }
             }
 
+            // --- Delete Button ---
+            OutlinedButton(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AdminRed),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AdminRed.copy(alpha = 0.6f))
+            ) {
+                Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("ลบคอนเสิร์ตนี้", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+
             Spacer(Modifier.height(16.dp))
         }
+    }
+
+    // --- Delete Confirm Dialog ---
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            containerColor = AdminSurface,
+            shape = RoundedCornerShape(20.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(AdminRed.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.DeleteForever, contentDescription = null, tint = AdminRed, modifier = Modifier.size(28.dp))
+                }
+            },
+            title = {
+                Text(
+                    "ลบคอนเสิร์ต?",
+                    color = AdminText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "\"${concert?.title ?: ""}\"",
+                        color = AdminViolet,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        "คอนเสิร์ตจะถูกซ่อนจากผู้ใช้ทั้งหมด แต่ข้อมูลตั๋วที่จองไปแล้วยังคงอยู่",
+                        color = AdminSubText,
+                        fontSize = 13.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteConcert(concertId) { onBack() }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AdminRed),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("ลบเลย", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("ยกเลิก", color = AdminSubText)
+                }
+            }
+        )
     }
 }
 

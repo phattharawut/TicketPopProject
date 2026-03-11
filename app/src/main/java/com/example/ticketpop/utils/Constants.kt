@@ -19,6 +19,7 @@ object Constants {
     const val ROUTE_SEARCH         = "search"
     const val ROUTE_MY_TICKET      = "my_ticket"
     const val ROUTE_MY_TICKETS     = "my_tickets"
+    const val ROUTE_MY_TICKETS_TAB = "my_tickets?tab={tab}"
     const val ROUTE_PROFILE        = "profile"
     const val ROUTE_CONCERT_DETAIL = "concert/{concertId}"
     const val ROUTE_VENUE_INFO     = "venue/{concertId}"

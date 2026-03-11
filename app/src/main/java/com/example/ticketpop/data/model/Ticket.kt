@@ -9,8 +9,11 @@ data class Ticket(
     val rowLabel: String?,
     val numberLabel: String?,
     val concertTitle: String,
-    val posterUrl: String = "" ,
+    val posterUrl: String = "",
     val showDate: String,
     val showTime: String,
-    val venueName: String
+    val venueName: String,
+    val holderName: String = "",
+    val isUsed: Boolean = false,
+    val concertStatus: String = "OnSale"  // "Cancelled" = admin ลบ concert → ตั๋วแสดงเป็นยกเลิก
 )

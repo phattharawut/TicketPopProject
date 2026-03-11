@@ -20,6 +20,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -42,14 +45,53 @@ fun ProfileScreen(
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
-    val user = viewModel.currentUser.value
+    val user by viewModel.currentUser
     val userStats by viewModel.userStats
+    val authState by viewModel.authState.collectAsState()
 
     var isEditing by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
 
     var editName by remember { mutableStateOf(user?.fullName ?: "") }
     var editPhone by remember { mutableStateOf(user?.phone ?: "") }
+
+    // sync เมื่อ user data โหลดเสร็จ
+    LaunchedEffect(user) {
+        if (!isEditing) {
+            editName = user?.fullName ?: ""
+            editPhone = user?.phone ?: ""
+        }
+    }
+
+    // โหลด stats ทุกครั้งที่ navigate กลับมาหน้านี้
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                user?.id?.let { viewModel.fetchUserStats(it) }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // handle authState สำหรับ updateProfile
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Error && isSaving) {
+            Toast.makeText(context, (authState as AuthState.Error).message, Toast.LENGTH_SHORT).show()
+            isSaving = false
+        }
+    }
+
+    // sync editName/editPhone หลัง updateProfile สำเร็จ
+    LaunchedEffect(user?.fullName, user?.phone) {
+        if (isSaving) {
+            isSaving = false
+            isEditing = false
+            Toast.makeText(context, "บันทึกข้อมูลเรียบร้อยแล้ว", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     var oldPass by remember { mutableStateOf("") }
     var newPass by remember { mutableStateOf("") }
@@ -178,23 +220,29 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = {
+                                if (editName.isBlank()) {
+                                    Toast.makeText(context, "กรุณากรอกชื่อ-นามสกุล", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
                                 if (editPhone.length != 10) {
                                     Toast.makeText(context, "เบอร์โทรศัพท์ต้องมี 10 หลัก", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
                                 user?.id?.let { id ->
+                                    isSaving = true
                                     viewModel.updateProfile(id, editName, editPhone)
-                                    Toast.makeText(context, "บันทึกข้อมูลเรียบร้อยแล้ว", Toast.LENGTH_SHORT).show()
-                                    isEditing = false
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !isSaving
                         ) {
-                            Text("บันทึกข้อมูล", fontWeight = FontWeight.Bold)
+                            if (isSaving) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("บันทึกข้อมูล", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -227,7 +275,7 @@ fun ProfileScreen(
                     icon = Icons.Default.History,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { navController.navigate(com.example.ticketpop.utils.Constants.ROUTE_TICKET_HISTORY) }
+                        .clickable { navController.navigate("my_tickets?tab=1") }
                 )
             }
 
@@ -319,9 +367,19 @@ fun ProfileScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (newPass != confirmNewPass) {
-                            Toast.makeText(context, "รหัสผ่านใหม่ไม่ตรงกัน", Toast.LENGTH_SHORT).show()
-                            return@Button
+                        when {
+                            oldPass.isBlank() -> {
+                                Toast.makeText(context, "กรุณากรอกรหัสผ่านเดิม", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            newPass.length < 6 -> {
+                                Toast.makeText(context, "รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            newPass != confirmNewPass -> {
+                                Toast.makeText(context, "รหัสผ่านใหม่ไม่ตรงกัน", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
                         }
                         user?.id?.let { id ->
                             viewModel.changePassword(id, oldPass, newPass) { success, message ->
