@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,6 +38,7 @@ import com.example.ticketpop.ui.theme.*
 @Composable
 fun ProfileScreen(
     viewModel: AuthViewModel,
+    navController: androidx.navigation.NavController,
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
@@ -205,9 +207,28 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                StatItem("ตั๋วของฉัน", userStats?.ticketCount ?: "0", Icons.Default.ConfirmationNumber, Modifier.weight(1f))
-                StatItem("ยอดใช้จ่าย", userStats?.points ?: "0", Icons.Default.AccountBalanceWallet, Modifier.weight(1f))
-                StatItem("ประวัติ", userStats?.historyCount ?: "0", Icons.Default.History, Modifier.weight(1f))
+                StatItem(
+                    label = "ตั๋วของฉัน",
+                    value = userStats?.ticketCount ?: "0",
+                    icon = Icons.Default.ConfirmationNumber,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { navController.navigate(com.example.ticketpop.utils.Constants.ROUTE_MY_TICKETS) }
+                )
+                StatItem(
+                    label = "ยอดใช้จ่าย",
+                    value = userStats?.points ?: "0",
+                    icon = Icons.Default.AccountBalanceWallet,
+                    modifier = Modifier.weight(1f)
+                )
+                StatItem(
+                    label = "ประวัติ",
+                    value = userStats?.historyCount ?: "0",
+                    icon = Icons.Default.History,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { navController.navigate(com.example.ticketpop.utils.Constants.ROUTE_TICKET_HISTORY) }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
