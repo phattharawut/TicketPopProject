@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รายงานระบบ TICKETPOP</title>
+<style>
+  :root {
+    --purple: #6B4EFF;
+    --purple-dark: #4B2FBE;
+    --purple-light: #F0EDFF;
+    --red: #E53935;
+    --green: #2E7D32;
+    --gray: #666680;
+    --light: #F8F8FA;
+    --white: #FFFFFF;
+    --text: #1A1A2E;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Sarabun', sans-serif;
+    background: var(--light);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ===== COVER ===== */
+  .cover {
+    background: linear-gradient(135deg, #1A1A2E 0%, #4B2FBE 50%, #6B4EFF 100%);
+    color: white;
+    text-align: center;
+    padding: 80px 40px 60px;
+  }
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 50px;
+    padding: 6px 20px;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .cover h1 {
+    font-size: 64px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    margin-bottom: 8px;
+  }
+  .cover h1 span { color: #C5B4FF; }
+  .cover-sub {
+    font-size: 20px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 40px;
+  }
+  .cover-info {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+  }
+  .cover-info-item { font-size: 14px; color: rgba(255,255,255,0.7); }
+  .cover-info-item strong { color: white; display: block; font-size: 16px; }
+
+  /* ===== LAYOUT ===== */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .section { padding: 60px 0; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 36px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--purple-light);
+  }
+  .section-number {
+    width: 44px; height: 44px;
+    background: var(--purple);
+    color: white;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px;
+    flex-shrink: 0;
+  }
+  .section-title { font-size: 28px; font-weight: 800; color: var(--text); }
+  .section-sub { font-size: 14px; color: var(--gray); margin-top: 2px; }
+
+  h3 { font-size: 18px; font-weight: 700; color: var(--purple); margin: 28px 0 12px; }
+  h4 { font-size: 15px; font-weight: 700; color: var(--text); margin: 16px 0 8px; }
+  p { color: var(--gray); margin-bottom: 12px; }
+
+  /* ===== ER DIAGRAM ===== */
+  .er-container {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+    overflow-x: auto;
+  }
+  .er-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    min-width: 760px;
+  }
+  .er-table {
+    border: 2px solid var(--purple);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .er-table-header {
+    background: var(--purple);
+    color: white;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .er-table-header .icon { font-size: 18px; }
+  .er-field {
+    padding: 7px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #F0F0F8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .er-field:last-child { border-bottom: none; }
+  .er-field.pk { background: #FFF8E1; font-weight: 700; color: #B8860B; }
+  .er-field.fk { background: #E8F4FD; color: #1565C0; }
+  .badge-pk {
+    background: #F9A825; color: white;
+    font-size: 9px; font-weight: 800;
+    padding: 1px 5px; border-radius: 4px; letter-spacing: 0.5px;
+  }
+  .badge-fk {
+    background: #1565C0; color: white;
+    font-size: 9px; font-weight: 800;
+    padding: 1px 5px; border-radius: 4px; letter-spacing: 0.5px;
+  }
+  .badge-enum {
+    background: var(--purple); color: white;
+    font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+  }
+  .er-relation {
+    background: var(--purple-light);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+  .er-relation h4 { color: var(--purple); margin-top: 0; }
+  .rel-item {
+    font-size: 13px;
+    color: var(--gray);
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(107,78,255,0.1);
+  }
+  .rel-item:last-child { border-bottom: none; }
+  .rel-arrow { color: var(--purple); font-weight: 700; }
+
+  /* ===== API TABLE ===== */
+  .api-group { margin-bottom: 36px; }
+  .api-group-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--purple);
+    margin-bottom: 12px;
+    padding-left: 8px;
+    border-left: 3px solid var(--purple);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  th {
+    background: var(--purple);
+    color: white;
+    padding: 12px 16px;
+    font-size: 13px;
+    text-align: left;
+    font-weight: 700;
+  }
+  td {
+    padding: 11px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #F5F5F8;
+    color: var(--gray);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFAFE; }
+  .method {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+  .get { background: #E8F5E9; color: #2E7D32; }
+  .post { background: #E3F2FD; color: #1565C0; }
+  .put { background: #FFF3E0; color: #E65100; }
+  .del { background: #FFEBEE; color: #C62828; }
+  code {
+    background: #F0EDFF;
+    color: var(--purple);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+  }
+
+  /* ===== FLOW ===== */
+  .flow-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .flow-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    border-top: 4px solid var(--purple);
+  }
+  .flow-card.admin { border-top-color: #E53935; }
+  .flow-card.ticket { border-top-color: #00897B; }
+  .flow-card.payment { border-top-color: #F57C00; }
+  .flow-card h4 {
+    font-size: 16px;
+    color: var(--text);
+    margin-top: 0;
+    margin-bottom: 14px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--gray);
+  }
+  .flow-num {
+    width: 22px; height: 22px;
+    background: var(--purple-light);
+    color: var(--purple);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .flow-arrow { color: var(--purple); margin: 0 4px; }
+
+  /* ===== SCREEN TABLE ===== */
+  .screen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .screen-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    gap: 14px;
+  }
+  .screen-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: var(--purple-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .screen-card .admin-icon { background: #FFEBEE; }
+  .screen-name { font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+  .screen-desc { font-size: 12px; color: var(--gray); }
+  .screen-route { font-size: 11px; color: var(--purple); margin-top: 6px; }
+
+  /* ===== MODEL ===== */
+  .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .model-card {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .model-header {
+    background: linear-gradient(90deg, var(--purple), #4B6EFF);
+    color: white;
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .model-field {
+    padding: 8px 16px;
+    font-size: 12px;
+    border-bottom: 1px solid #F5F5F8;
+    display: flex;
+    justify-content: space-between;
+    color: var(--gray);
+  }
+  .model-field:last-child { border-bottom: none; }
+  .model-field strong { color: var(--text); font-size: 13px; }
+  .type-badge {
+    font-size: 10px;
+    background: var(--purple-light);
+    color: var(--purple);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  /* ===== TECH STACK ===== */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .tech-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .tech-icon { font-size: 36px; margin-bottom: 10px; }
+  .tech-name { font-weight: 700; font-size: 15px; color: var(--text); }
+  .tech-version { font-size: 12px; color: var(--gray); margin-top: 4px; }
+
+  /* ===== MISC ===== */
+  .toc {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin: -30px 0 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .toc h3 { margin-top: 0; }
+  .toc ol { padding-left: 20px; }
+  .toc li { padding: 4px 0; font-size: 14px; color: var(--gray); }
+  .toc a { color: var(--purple); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  .highlight-box {
+    background: var(--purple-light);
+    border-left: 4px solid var(--purple);
+    padding: 16px 20px;
+    border-radius: 0 10px 10px 0;
+    margin: 16px 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .warn-box {
+    background: #FFF3E0;
+    border-left: 4px solid #F57C00;
+    padding: 16px 20px;
+    border-radius: 0 10px 10px 0;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #5D4037;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #EEE;
+    margin: 40px 0;
+  }
+
+  .tag {
+    display: inline-block;
+    background: var(--purple-light);
+    color: var(--purple);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 2px;
+  }
+
+  @media print {
+    .cover { padding: 40px 24px 30px; }
+    .cover h1 { font-size: 40px; }
+    .section { padding: 36px 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== COVER ===== -->
+<div class="cover">
+  <div class="cover-badge">Technical Documentation</div>
+  <h1>TICKET<span>POP</span></h1>
+  <div class="cover-sub">ระบบจองตั๋วคอนเสิร์ตออนไลน์ — Android Mobile Application</div>
+  <div class="cover-info">
+    <div class="cover-info-item"><strong>Platform</strong>Android (Kotlin)</div>
+    <div class="cover-info-item"><strong>UI Framework</strong>Jetpack Compose</div>
+    <div class="cover-info-item"><strong>Backend</strong>Node.js + Express</div>
+    <div class="cover-info-item"><strong>Database</strong>MySQL (MariaDB)</div>
+    <div class="cover-info-item"><strong>วันที่จัดทำ</strong>มีนาคม 2026</div>
+  </div>
+</div>
+
+<!-- ===== TOC ===== -->
+<div class="container">
+  <div class="toc">
+    <h3>📋 สารบัญ</h3>
+    <ol>
+      <li><a href="#overview">ภาพรวมระบบ</a></li>
+      <li><a href="#tech">เทคโนโลยีที่ใช้</a></li>
+      <li><a href="#er">โครงสร้างฐานข้อมูล (ER Model)</a></li>
+      <li><a href="#api">Backend API Endpoints</a></li>
+      <li><a href="#models">Data Models (Kotlin)</a></li>
+      <li><a href="#ui">หน้าจอ (UI Screens)</a></li>
+      <li><a href="#flow">User Flow & การใช้งาน</a></li>
+      <li><a href="#admin">ระบบ Admin</a></li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== 1. OVERVIEW ===== -->
+<div class="section" id="overview">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <div>
+        <div class="section-title">ภาพรวมระบบ</div>
+        <div class="section-sub">System Overview</div>
+      </div>
+    </div>
+
+    <p>TICKETPOP คือแอปพลิเคชัน Android สำหรับจองตั๋วคอนเสิร์ต รองรับผู้ใช้ 2 ประเภทคือ <strong>Customer</strong> (ผู้ซื้อตั๋ว) และ <strong>Admin</strong> (ผู้จัดการระบบ) ระบบแบ่งออกเป็น 2 ส่วนหลัก ได้แก่</p>
+
+    <div class="highlight-box">
+      <strong>Frontend:</strong> Android app เขียนด้วย Kotlin + Jetpack Compose ใช้ Retrofit2 สำหรับ HTTP requests, ZXing สำหรับ QR Code, Coil สำหรับโหลดรูปภาพ
+    </div>
+    <div class="highlight-box">
+      <strong>Backend:</strong> Node.js + Express.js API server เชื่อมต่อกับ MySQL/MariaDB ผ่าน mysql2 library, ใช้ JWT สำหรับ Authentication, bcryptjs สำหรับ hash รหัสผ่าน, multer สำหรับ upload รูปภาพ
+    </div>
+
+    <h3>ฟีเจอร์หลัก</h3>
+    <div class="flow-grid">
+      <div class="flow-card">
+        <h4>🎵 สำหรับ Customer</h4>
+        <div class="flow-step"><div class="flow-num">1</div> สมัครสมาชิก / เข้าสู่ระบบ</div>
+        <div class="flow-step"><div class="flow-num">2</div> ดูรายการคอนเสิร์ตทั้งหมด</div>
+        <div class="flow-step"><div class="flow-num">3</div> เลือกโซนและที่นั่ง</div>
+        <div class="flow-step"><div class="flow-num">4</div> ชำระเงิน (PromptPay / Credit Card)</div>
+        <div class="flow-step"><div class="flow-num">5</div> รับ QR Code ตั๋ว</div>
+        <div class="flow-step"><div class="flow-num">6</div> ดูประวัติการซื้อ</div>
+      </div>
+      <div class="flow-card admin">
+        <h4>⚙️ สำหรับ Admin</h4>
+        <div class="flow-step"><div class="flow-num">1</div> ดู Dashboard สรุปข้อมูล</div>
+        <div class="flow-step"><div class="flow-num">2</div> สร้าง / แก้ไข / ลบคอนเสิร์ต</div>
+        <div class="flow-step"><div class="flow-num">3</div> จัดการที่นั่ง (เปิด/ปิด)</div>
+        <div class="flow-step"><div class="flow-num">4</div> สแกน QR ตรวจสอบตั๋ว</div>
+        <div class="flow-step"><div class="flow-num">5</div> Mark ตั๋วว่า "ใช้แล้ว" (Check-in)</div>
+      </div>
+      <div class="flow-card ticket">
+        <h4>🎫 ระบบตั๋ว</h4>
+        <div class="flow-step"><div class="flow-num">1</div> ตั๋วแต่ละใบมี QR Code unique</div>
+        <div class="flow-step"><div class="flow-num">2</div> รองรับทั้ง Seated และ Standing</div>
+        <div class="flow-step"><div class="flow-num">3</div> ตั๋วแสดงสถานะ: ปกติ / ใช้แล้ว / ยกเลิก</div>
+        <div class="flow-step"><div class="flow-num">4</div> Concert ถูกลบ → ตั๋วแสดงสีแดง "ยกเลิก"</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 2. TECH ===== -->
+<div class="section" style="background: white;" id="tech">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <div>
+        <div class="section-title">เทคโนโลยีที่ใช้</div>
+        <div class="section-sub">Technology Stack</div>
+      </div>
+    </div>
+
+    <h3>Frontend (Android)</h3>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon">🤖</div>
+        <div class="tech-name">Kotlin</div>
+        <div class="tech-version">Language</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🎨</div>
+        <div class="tech-name">Jetpack Compose</div>
+        <div class="tech-version">UI Framework</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🌐</div>
+        <div class="tech-name">Retrofit2</div>
+        <div class="tech-version">HTTP Client + Gson</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🗺️</div>
+        <div class="tech-name">Navigation Compose</div>
+        <div class="tech-version">Navigation Graph</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">📷</div>
+        <div class="tech-name">ZXing Core 3.5.2</div>
+        <div class="tech-version">QR Code Generator</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🖼️</div>
+        <div class="tech-name">Coil</div>
+        <div class="tech-version">Image Loading</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🔄</div>
+        <div class="tech-name">StateFlow / MutableState</div>
+        <div class="tech-version">Reactive State</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🏛️</div>
+        <div class="tech-name">ViewModel + Repository</div>
+        <div class="tech-version">Architecture Pattern</div>
+      </div>
+    </div>
+
+    <h3>Backend</h3>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon">🟢</div>
+        <div class="tech-name">Node.js</div>
+        <div class="tech-version">Runtime</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">⚡</div>
+        <div class="tech-name">Express.js</div>
+        <div class="tech-version">Web Framework</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🐬</div>
+        <div class="tech-name">MySQL / MariaDB</div>
+        <div class="tech-version">10.4.32 + mysql2</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🔐</div>
+        <div class="tech-name">JWT + bcryptjs</div>
+        <div class="tech-version">Auth + Password Hash</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">📁</div>
+        <div class="tech-name">Multer</div>
+        <div class="tech-version">File Upload (5MB)</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🔌</div>
+        <div class="tech-name">Port 8080</div>
+        <div class="tech-version">0.0.0.0 (All interfaces)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 3. ER MODEL ===== -->
+<div class="section" id="er">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <div>
+        <div class="section-title">โครงสร้างฐานข้อมูล (ER Model)</div>
+        <div class="section-sub">Entity Relationship Diagram — ticketpop_db</div>
+      </div>
+    </div>
+
+    <div class="er-container">
+      <div class="er-grid">
+
+        <!-- users -->
+        <div class="er-table">
+          <div class="er-table-header"><span class="icon">👤</span> users</div>
+          <div class="er-field pk"><span class="badge-pk">PK</span> user_id <span style="color:#999;margin-left:auto">INT AUTO</span></div>
+          <div class="er-field">username <span style="color:#999;margin-left:auto">VARCHAR(255)</span></div>
+          <div class="er-field">password_hash <span style="color:#999;margin-left:auto">VARCHAR(255)</span></div>
+          <div class="er-field">full_name <span style="color:#999;margin-left:auto">VARCHAR(255)</span></div>
+          <div class="er-field">email <span style="color:#999;margin-left:auto">VARCHAR(255) UNIQUE</span></div>
+          <div class="er-field">phone_number <span style="color:#999;margin-left:auto">VARCHAR(20)</span></div>
+          <div class="er-field"><span class="badge-enum">ENUM</span> role <span style="color:#999;margin-left:auto">Admin / Customer</span></div>
+          <div class="er-field">created_at <span style="color:#999;margin-left:auto">DATETIME</span></div>
+        </div>
+
+        <!-- concerts -->
+        <div class="er-table">
+          <div class="er-table-header"><span class="icon">🎵</span> concerts</div>
+          <div class="er-field pk"><span class="badge-pk">PK</span> concert_id <span style="color:#999;margin-left:auto">INT AUTO</span></div>
+          <div class="er-field">title <span style="color:#999;margin-left:auto">VARCHAR(255)</span></div>
+          <div class="er-field">description <span style="color:#999;margin-left:auto">TEXT</span></div>
+          <div class="er-field">venue_name <span style="color:#999;margin-left:auto">VARCHAR(255)</span></div>
+          <div class="er-field">show_date <span style="color:#999;margin-left:auto">DATE</span></div>
+          <div class="er-field">show_time <span style="color:#999;margin-left:auto">TIME</span></div>
+          <div class="er-field">poster_image_url <span style="color:#999;margin-left:auto">VARCHAR(500)</span></div>
+          <div class="er-field"><span class="badge-enum">ENUM</span> status <span style="color:#999;margin-left:auto">Upcoming/OnSale/SoldOut/Ended/Cancelled</span></div>
+        </div>
+
+        <!-- bookings -->
+        <div class="er-table">
+          <div class="er-table-header"><span class="icon">📋</span> bookings</div>
+          <div class="er-field pk"><span class="badge-pk">PK</span> booking_id <span style="color:#999;margin-left:auto">INT AUTO</span></div>
+          <div class="er-field fk"><span class="badge-fk">FK</span> user_id <span style="color:#999;margin-left:auto">→ users</span></div>
+          <div class="er-field">total_amount <span style="color:#999;margin-left:auto">DECIMAL(10,2)</span></div>
+          <div class="er-field">booking_date <span style="color:#999;margin-left:auto">DATETIME</span></div>
+          <div class="er-field"><span class="badge-enum">ENUM</span> status <span style="color:#999;margin-left:auto">Pending/Paid/Cancelled</span></div>
+          <div class="er-field">payment_method <span style="color:#999;margin-left:auto">VARCHAR(50)</span></div>
+        </div>
+
+        <!-- zones -->
+        <div class="er-table">
+          <div class="er-table-header"><span class="icon">📍</span> zones</div>
+          <div class="er-field pk"><span class="badge-pk">PK</span> zone_id <span style="color:#999;margin-left:auto">INT AUTO</span></div>
+          <div class="er-field fk"><span class="badge-fk">FK</span> concert_id <span style="color:#999;margin-left:auto">→ concerts</span></div>
+          <div class="er-field">zone_name <span style="color:#999;margin-left:auto">VARCHAR(50)</span></div>
+          <div class="er-field">price <span style="color:#999;margin-left:auto">DECIMAL(10,2)</span></div>
+          <div class="er-field"><span class="badge-enum">ENUM</span> type <span style="color:#999;margin-left:auto">Seated / Standing</span></div>
+          <div class="er-field">color_code <span style="color:#999;margin-left:auto">VARCHAR(10)</span></div>
+          <div class="er-field">capacity <span style="color:#999;margin-left:auto">INT</span></div>
+        </div>
+
+        <!-- seats -->
+        <div class="er-table">
+          <div class="er-table-header"><span class="icon">💺</span> seats</div>
+          <div class="er-field pk"><span class="badge-pk">PK</span> seat_id <span style="color:#999;margin-left:auto">INT AUTO</span></div>
+          <div class="er-field fk"><span class="badge-fk">FK</span> concert_id <span style="color:#999;margin-left:auto">→ concerts</span></div>
+          <div class="er-field fk"><span class="badge-fk">FK</span> zone_id <span style="color:#999;margin-left:auto">→ zones</span></div>
+          <div class="er-field">row_label <span style="color:#999;margin-left:auto">VARCHAR(5)</span></div>
+          <div class="er-field">number_label <span style="color:#999;margin-left:auto">VARCHAR(10)</span></div>
+          <div class="er-field">is_active <span style="color:#999;margin-left:auto">TINYINT(1) DEFAULT 1</span></div>
+          <div class="er-field">is_reserved <span style="color:#999;margin-left:auto">TINYINT(1) DEFAULT 0</span></div>
+        </div>
+
+        <!-- tickets -->
+        <div class="er-table">
+          <div class="er-table-header"><span class="icon">🎫</span> tickets</div>
+          <div class="er-field pk"><span class="badge-pk">PK</span> ticket_id <span style="color:#999;margin-left:auto">INT AUTO</span></div>
+          <div class="er-field fk"><span class="badge-fk">FK</span> booking_id <span style="color:#999;margin-left:auto">→ bookings</span></div>
+          <div class="er-field fk"><span class="badge-fk">FK</span> zone_id <span style="color:#999;margin-left:auto">→ zones</span></div>
+          <div class="er-field fk"><span class="badge-fk">FK</span> seat_id <span style="color:#999;margin-left:auto">→ seats (nullable)</span></div>
+          <div class="er-field">is_used <span style="color:#999;margin-left:auto">TINYINT(1) DEFAULT 0</span></div>
+        </div>
+
+      </div>
+
+      <!-- Relations -->
+      <div class="er-relation">
+        <h4>🔗 ความสัมพันธ์ระหว่างตาราง (Relationships)</h4>
+        <div class="rel-item"><strong>users</strong> <span class="rel-arrow">1 ──────── N</span> <strong>bookings</strong> — ผู้ใช้หนึ่งคนมีได้หลาย Booking (ON DELETE CASCADE)</div>
+        <div class="rel-item"><strong>concerts</strong> <span class="rel-arrow">1 ──────── N</span> <strong>zones</strong> — คอนเสิร์ตหนึ่งมีได้หลายโซน (ON DELETE CASCADE)</div>
+        <div class="rel-item"><strong>zones</strong> <span class="rel-arrow">1 ──────── N</span> <strong>seats</strong> — โซนหนึ่งมีได้หลายที่นั่ง (ON DELETE CASCADE)</div>
+        <div class="rel-item"><strong>concerts</strong> <span class="rel-arrow">1 ──────── N</span> <strong>seats</strong> — seats เก็บ concert_id เพื่อ query ตามคอนเสิร์ตได้ตรง</div>
+        <div class="rel-item"><strong>bookings</strong> <span class="rel-arrow">1 ──────── N</span> <strong>tickets</strong> — Booking หนึ่งมีได้หลาย Ticket (ON DELETE CASCADE)</div>
+        <div class="rel-item"><strong>zones</strong> <span class="rel-arrow">1 ──────── N</span> <strong>tickets</strong> — Ticket อยู่ในโซนใดโซนหนึ่ง</div>
+        <div class="rel-item"><strong>seats</strong> <span class="rel-arrow">1 ──────── 1</span> <strong>tickets</strong> — Ticket นั่งระบุ seat_id (NULL สำหรับ Standing)</div>
+      </div>
+    </div>
+
+    <h3>หมายเหตุ concert.status</h3>
+    <div class="warn-box">
+      <strong>Upcoming</strong> — ประกาศแล้วยังไม่เปิดขาย &nbsp;|&nbsp;
+      <strong>OnSale</strong> — เปิดขายปกติ &nbsp;|&nbsp;
+      <strong>SoldOut</strong> — ตั๋วหมด &nbsp;|&nbsp;
+      <strong>Ended</strong> — คอนเสิร์ตจบแล้วตามปกติ &nbsp;|&nbsp;
+      <strong>Cancelled</strong> — Admin ลบคอนเสิร์ต (Soft Delete) → ตั๋วของ user แสดงสีแดง "ยกเลิก"
+    </div>
+  </div>
+</div>
+
+<!-- ===== 4. API ===== -->
+<div class="section" style="background: white;" id="api">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <div>
+        <div class="section-title">Backend API Endpoints</div>
+        <div class="section-sub">Base URL: http://&lt;SERVER_IP&gt;:8080 — Response Format: { success, message, data }</div>
+      </div>
+    </div>
+
+    <!-- AUTH -->
+    <div class="api-group">
+      <div class="api-group-title">🔐 Authentication</div>
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Body / Params</th><th>Response data</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td><code>/api/auth/register</code></td>
+            <td>สมัครสมาชิก</td>
+            <td>fullName, email, phone, password</td>
+            <td>{ token, user }</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td><code>/api/auth/login</code></td>
+            <td>เข้าสู่ระบบ (email / username / phone)</td>
+            <td>email, password</td>
+            <td>{ token, user }</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td><code>/api/auth/update-profile</code></td>
+            <td>แก้ไขชื่อ-นามสกุล, เบอร์โทร</td>
+            <td>userId, fullName, phone</td>
+            <td>UserProfile object</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td><code>/api/auth/change-password</code></td>
+            <td>เปลี่ยนรหัสผ่าน</td>
+            <td>userId, oldPassword, newPassword</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/auth/user-stats/:userId</code></td>
+            <td>ดึงสถิติผู้ใช้</td>
+            <td>userId (path)</td>
+            <td>{ ticketCount, points, historyCount }</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CONCERTS -->
+    <div class="api-group">
+      <div class="api-group-title">🎵 Concerts</div>
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Body / Params</th><th>Response data</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/concerts</code></td>
+            <td>รายการคอนเสิร์ต (ซ่อน Ended/Cancelled)</td>
+            <td>—</td>
+            <td>Concert[] + minPrice</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/concerts/:id</code></td>
+            <td>รายละเอียดคอนเสิร์ต</td>
+            <td>concertId (path)</td>
+            <td>Concert object</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td><code>/api/concerts</code></td>
+            <td>Admin สร้างคอนเสิร์ต + zones + seats</td>
+            <td>title, venueName, showDate, showTime, posterImageUrl, zones[]</td>
+            <td>{ concertId }</td>
+          </tr>
+          <tr>
+            <td><span class="method put">PUT</span></td>
+            <td><code>/api/concerts/reorder</code></td>
+            <td>Admin เรียงลำดับคอนเสิร์ต (ต้องอยู่ก่อน /:id)</td>
+            <td>orders[] → { concertId, sortOrder }</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="method put">PUT</span></td>
+            <td><code>/api/concerts/:id</code></td>
+            <td>Admin แก้ไขคอนเสิร์ต</td>
+            <td>title, description, venueName, showDate, showTime, posterImageUrl, status</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="method del">DELETE</span></td>
+            <td><code>/api/concerts/:id</code></td>
+            <td>Admin ลบคอนเสิร์ต (Soft Delete → status='Cancelled')</td>
+            <td>concertId (path)</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ZONES & SEATS -->
+    <div class="api-group">
+      <div class="api-group-title">📍 Zones & Seats</div>
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Body / Params</th><th>Response data</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/zones/:concertId</code></td>
+            <td>ดึงโซนทั้งหมด + remainingSeats</td>
+            <td>concertId (path)</td>
+            <td>Zone[] (capacity = remaining สำหรับ Seated)</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/concerts/:id/zones-seats</code></td>
+            <td>ดึงโซน + seats ทั้งหมด (Admin layout)</td>
+            <td>concertId (path)</td>
+            <td>Zone[] + seats nested</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/seats/:zoneId</code></td>
+            <td>ดึง seats ของโซน (auto-generate ถ้าว่าง)</td>
+            <td>zoneId (path)</td>
+            <td>Seat[]</td>
+          </tr>
+          <tr>
+            <td><span class="method put">PUT</span></td>
+            <td><code>/api/seats/:seatId/toggle</code></td>
+            <td>Admin toggle is_active ของที่นั่ง</td>
+            <td>seatId (path)</td>
+            <td>{ isActive }</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BOOKINGS & TICKETS -->
+    <div class="api-group">
+      <div class="api-group-title">🎫 Bookings & Tickets</div>
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Body / Params</th><th>Response data</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td><code>/api/bookings</code></td>
+            <td>จองตั๋ว (Transaction + lock seats)</td>
+            <td>userId, zoneId, seatIds[], standingCount, totalAmount, paymentMethod</td>
+            <td>{ bookingId, status }</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/users/:userId/tickets</code></td>
+            <td>ดึงตั๋วทั้งหมดของ user (พร้อม concertStatus)</td>
+            <td>userId (path)</td>
+            <td>Ticket[]</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/tickets/:ticketId</code></td>
+            <td>ดึงตั๋วตาม ID (สำหรับ QR Screen + Admin scan)</td>
+            <td>ticketId (path)</td>
+            <td>TicketDetail + holderName + isUsed</td>
+          </tr>
+          <tr>
+            <td><span class="method put">PUT</span></td>
+            <td><code>/api/tickets/:ticketId/use</code></td>
+            <td>Mark ตั๋วว่าใช้แล้ว (Admin check-in)</td>
+            <td>ticketId (path)</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ADMIN & UPLOAD -->
+    <div class="api-group">
+      <div class="api-group-title">⚙️ Admin Stats & Upload</div>
+      <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Body / Params</th><th>Response data</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/admin/stats</code></td>
+            <td>สถิติ Admin Dashboard</td>
+            <td>—</td>
+            <td>{ totalTickets, totalRevenue, totalConcerts, attendanceRate }</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td><code>/api/admin/recent-concerts</code></td>
+            <td>รายการคอนเสิร์ตล่าสุด 5 รายการ</td>
+            <td>—</td>
+            <td>RecentConcert[]</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td><code>/api/upload</code></td>
+            <td>อัปโหลดรูป poster (max 5MB, jpg/png/webp)</td>
+            <td>multipart: image</td>
+            <td>{ url }</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 5. MODELS ===== -->
+<div class="section" id="models">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <div>
+        <div class="section-title">Data Models (Kotlin)</div>
+        <div class="section-sub">data class ที่ใช้รับ-ส่งข้อมูลกับ API</div>
+      </div>
+    </div>
+
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="model-header">📦 ApiResponse&lt;T&gt;</div>
+        <div class="model-field"><strong>success</strong> <span class="type-badge">Boolean</span></div>
+        <div class="model-field"><strong>message</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>data</strong> <span class="type-badge">T?</span></div>
+      </div>
+      <div class="model-card">
+        <div class="model-header">👤 UserProfile</div>
+        <div class="model-field"><strong>id</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>fullName</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>email</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>phone</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>role</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>level</strong> <span class="type-badge">String</span></div>
+      </div>
+      <div class="model-card">
+        <div class="model-header">🎵 Concert</div>
+        <div class="model-field"><strong>concertId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>title</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>venueName</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>showDate / showTime</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>posterImageUrl</strong> <span class="type-badge">String?</span></div>
+        <div class="model-field"><strong>status</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>minPrice</strong> <span class="type-badge">Double?</span></div>
+      </div>
+      <div class="model-card">
+        <div class="model-header">📍 Zone</div>
+        <div class="model-field"><strong>zoneId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>zoneName</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>type</strong> <span class="type-badge">Seated / Standing</span></div>
+        <div class="model-field"><strong>price</strong> <span class="type-badge">Double</span></div>
+        <div class="model-field"><strong>capacity</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>colorCode</strong> <span class="type-badge">String</span></div>
+      </div>
+      <div class="model-card">
+        <div class="model-header">💺 Seat</div>
+        <div class="model-field"><strong>seatId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>zoneId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>rowLabel</strong> <span class="type-badge">String?</span></div>
+        <div class="model-field"><strong>numberLabel</strong> <span class="type-badge">String?</span></div>
+        <div class="model-field"><strong>isActive</strong> <span class="type-badge">Int (0/1)</span></div>
+        <div class="model-field"><strong>isReserved</strong> <span class="type-badge">Int (0/1)</span></div>
+      </div>
+      <div class="model-card">
+        <div class="model-header">🎫 Ticket</div>
+        <div class="model-field"><strong>ticketId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>bookingId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>zoneName</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>seatId</strong> <span class="type-badge">Int? (null=Standing)</span></div>
+        <div class="model-field"><strong>rowLabel / numberLabel</strong> <span class="type-badge">String?</span></div>
+        <div class="model-field"><strong>concertTitle / venueName</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>showDate / showTime</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>isUsed</strong> <span class="type-badge">Boolean</span></div>
+        <div class="model-field"><strong>concertStatus</strong> <span class="type-badge">String (Cancelled=ยกเลิก)</span></div>
+      </div>
+      <div class="model-card">
+        <div class="model-header">📋 Booking</div>
+        <div class="model-field"><strong>userId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>zoneId</strong> <span class="type-badge">Int</span></div>
+        <div class="model-field"><strong>seatIds</strong> <span class="type-badge">List&lt;Int&gt;?</span></div>
+        <div class="model-field"><strong>standingCount</strong> <span class="type-badge">Int?</span></div>
+        <div class="model-field"><strong>totalAmount</strong> <span class="type-badge">Double</span></div>
+        <div class="model-field"><strong>paymentMethod</strong> <span class="type-badge">String</span></div>
+      </div>
+      <div class="model-card">
+        <div class="model-header">📊 AdminStats</div>
+        <div class="model-field"><strong>totalTickets</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>totalRevenue</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>totalConcerts</strong> <span class="type-badge">String</span></div>
+        <div class="model-field"><strong>attendanceRate</strong> <span class="type-badge">String ("%")</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 6. UI SCREENS ===== -->
+<div class="section" style="background: white;" id="ui">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <div>
+        <div class="section-title">หน้าจอ (UI Screens)</div>
+        <div class="section-sub">Jetpack Compose Screens + Navigation Routes</div>
+      </div>
+    </div>
+
+    <h3>🔐 Auth Screens</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="screen-icon">🚀</div>
+        <div>
+          <div class="screen-name">SplashScreen</div>
+          <div class="screen-desc">หน้า splash animation บนพื้นม่วง ตรวจ JWT session แล้ว route ไป home หรือ login</div>
+          <div class="screen-route">route: splash</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🔑</div>
+        <div>
+          <div class="screen-name">LoginScreen</div>
+          <div class="screen-desc">ฟอร์ม login พร้อม validation ล็อกอินได้ทั้ง email, username, เบอร์โทร</div>
+          <div class="screen-route">route: login</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">📝</div>
+        <div>
+          <div class="screen-name">RegisterScreen</div>
+          <div class="screen-desc">ฟอร์มสมัครสมาชิก พร้อม validation ชื่อ/อีเมล/เบอร์ 10 หลัก/รหัสผ่านยืนยัน</div>
+          <div class="screen-route">route: register</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">👤</div>
+        <div>
+          <div class="screen-name">ProfileScreen</div>
+          <div class="screen-desc">แสดงข้อมูล user + stats (ตั๋ว/ยอดใช้จ่าย/ประวัติ), แก้ไขชื่อ/เบอร์, เปลี่ยนรหัสผ่าน, logout</div>
+          <div class="screen-route">route: profile</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>🏠 Home & Concert</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="screen-icon">🏠</div>
+        <div>
+          <div class="screen-name">HomeScreen</div>
+          <div class="screen-desc">รายการคอนเสิร์ต + search bar + Admin banner (สำหรับ admin) แสดงเฉพาะ concert ที่ไม่ใช่ Ended/Cancelled</div>
+          <div class="screen-route">route: home</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🎵</div>
+        <div>
+          <div class="screen-name">ConcertDetailScreen</div>
+          <div class="screen-desc">รายละเอียด concert ครบถ้วน: poster, วันเวลา, สถานที่, artist, ราคาเริ่มต้น</div>
+          <div class="screen-route">route: concert/{concertId}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">📍</div>
+        <div>
+          <div class="screen-name">VenueInfoScreen</div>
+          <div class="screen-desc">แสดงข้อมูลสถานที่จัดงานพร้อมแผนที่ static</div>
+          <div class="screen-route">route: venue/{concertId}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🎤</div>
+        <div>
+          <div class="screen-name">ArtistInfoScreen</div>
+          <div class="screen-desc">แสดงข้อมูลศิลปิน</div>
+          <div class="screen-route">route: artist/{concertId}</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>💺 Seat Selection</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="screen-icon">🗂️</div>
+        <div>
+          <div class="screen-name">ZoneSelectScreen</div>
+          <div class="screen-desc">เลือกโซน แสดงราคา/ประเภท/ที่นั่งคงเหลือ กด Seated → SeatMap, Standing → StandingZone</div>
+          <div class="screen-route">route: zone/{concertId}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🪑</div>
+        <div>
+          <div class="screen-name">SeatMapScreen</div>
+          <div class="screen-desc">แผนผังที่นั่ง grid พร้อมสีสถานะ (ว่าง/เลือก/จอง) max 4 ที่</div>
+          <div class="screen-route">route: seat/{zoneId}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🏃</div>
+        <div>
+          <div class="screen-name">StandingZoneScreen</div>
+          <div class="screen-desc">เลือกจำนวน Standing ticket ด้วย +/- counter max 4 ใบ</div>
+          <div class="screen-route">route: standing/{zoneId}</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>💳 Payment</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="screen-icon">📋</div>
+        <div>
+          <div class="screen-name">OrderSummaryScreen</div>
+          <div class="screen-desc">สรุปการสั่งซื้อ: concert/โซน/ที่นั่ง/ราคา + service fee 40฿ + เลือกวิธีชำระ</div>
+          <div class="screen-route">route: order_summary</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">💰</div>
+        <div>
+          <div class="screen-name">PaymentScreen</div>
+          <div class="screen-desc">PromptPay (QR mockup) หรือ Credit Card form แล้วยืนยันการชำระ</div>
+          <div class="screen-route">route: payment/{method}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">✅</div>
+        <div>
+          <div class="screen-name">PaymentSuccessScreen</div>
+          <div class="screen-desc">แจ้งสำเร็จ พร้อมปุ่มกลับหน้าหลัก (clear backstack)</div>
+          <div class="screen-route">route: success/{bookingId}</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>🎫 My Tickets</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="screen-icon">🎟️</div>
+        <div>
+          <div class="screen-name">MyTicketsScreen</div>
+          <div class="screen-desc">Tab 0: ตั๋วที่ยังไม่ได้ใช้ (กดดู QR), Tab 1: ประวัติ rองรับ initialTab เพื่อ deep-link จาก Profile</div>
+          <div class="screen-route">route: my_tickets | my_tickets?tab={tab}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">📱</div>
+        <div>
+          <div class="screen-name">TicketQrScreen</div>
+          <div class="screen-desc">แสดงตั๋ว digital พร้อม QR Code จริง (ZXing) format: TICKETPOP|bookingId|ticketId|zoneName</div>
+          <div class="screen-route">route: ticket/{ticketId}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">📅</div>
+        <div>
+          <div class="screen-name">TicketHistoryScreen</div>
+          <div class="screen-desc">ประวัติตั๋วที่ใช้แล้ว (showDate &lt; today) พร้อม summary card</div>
+          <div class="screen-route">route: ticket_history</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>⚙️ Admin Screens</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="screen-icon admin-icon">📊</div>
+        <div>
+          <div class="screen-name">AdminDashboardScreen</div>
+          <div class="screen-desc">Stats cards (revenue/tickets/concerts/attendance), quick actions, รายการ concert ล่าสุด</div>
+          <div class="screen-route">route: admin/dashboard</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon admin-icon">➕</div>
+        <div>
+          <div class="screen-name">AdminCreateConcertScreen</div>
+          <div class="screen-desc">ฟอร์มสร้างคอนเสิร์ตใหม่: title/venue/date/time/poster upload/zones config</div>
+          <div class="screen-route">route: admin/create_concert</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon admin-icon">✏️</div>
+        <div>
+          <div class="screen-name">AdminEditConcertScreen</div>
+          <div class="screen-desc">แก้ไขข้อมูล concert + เปลี่ยน status + ลบ concert (Soft Delete พร้อม confirm dialog)</div>
+          <div class="screen-route">route: admin/edit_concert/{concertId}</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon admin-icon">📷</div>
+        <div>
+          <div class="screen-name">AdminScanScreen</div>
+          <div class="screen-desc">สแกน / กรอก Ticket ID ตรวจสอบตั๋ว แสดงผล pass/fail และ check-in</div>
+          <div class="screen-route">route: admin/scan</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon admin-icon">🪑</div>
+        <div>
+          <div class="screen-name">AdminSeatLayoutScreen</div>
+          <div class="screen-desc">จัดการ seat layout ต่อ concert แบ่ง tab ตามโซน กด toggle เปิด/ปิดที่นั่ง</div>
+          <div class="screen-route">route: admin/seat_layout/{concertId}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 7. FLOW ===== -->
+<div class="section" id="flow">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">7</div>
+      <div>
+        <div class="section-title">User Flow & การใช้งาน</div>
+        <div class="section-sub">การทำงานของระบบตั้งแต่เปิดแอปจนได้ตั๋ว</div>
+      </div>
+    </div>
+
+    <div class="flow-grid">
+      <div class="flow-card">
+        <h4>🚀 Flow 1: เปิดแอปครั้งแรก</h4>
+        <div class="flow-step"><div class="flow-num">1</div>SplashScreen โหลด animation 1.5 วิ</div>
+        <div class="flow-step"><div class="flow-num">2</div>ตรวจ JWT Token ใน SharedPreferences</div>
+        <div class="flow-step"><div class="flow-num">3</div>ถ้าไม่มี token → LoginScreen</div>
+        <div class="flow-step"><div class="flow-num">4</div>ถ้ามี token + role=Admin → AdminDashboard</div>
+        <div class="flow-step"><div class="flow-num">5</div>ถ้ามี token + role=Customer → HomeScreen</div>
+      </div>
+      <div class="flow-card payment">
+        <h4>🎫 Flow 2: ซื้อตั๋ว (Seated)</h4>
+        <div class="flow-step"><div class="flow-num">1</div>HomeScreen <span class="flow-arrow">→</span> ConcertDetail</div>
+        <div class="flow-step"><div class="flow-num">2</div>กด "เลือกโซน" <span class="flow-arrow">→</span> ZoneSelectScreen</div>
+        <div class="flow-step"><div class="flow-num">3</div>เลือกโซน (Seated) <span class="flow-arrow">→</span> SeatMapScreen</div>
+        <div class="flow-step"><div class="flow-num">4</div>เลือก seat (max 4) <span class="flow-arrow">→</span> OrderSummary</div>
+        <div class="flow-step"><div class="flow-num">5</div>เลือกวิธีชำระ <span class="flow-arrow">→</span> PaymentScreen</div>
+        <div class="flow-step"><div class="flow-num">6</div>POST /api/bookings → lock seats → สร้าง tickets</div>
+        <div class="flow-step"><div class="flow-num">7</div>PaymentSuccess → home</div>
+      </div>
+      <div class="flow-card ticket">
+        <h4>📱 Flow 3: ดู QR ตั๋ว</h4>
+        <div class="flow-step"><div class="flow-num">1</div>BottomNav <span class="flow-arrow">→</span> MyTicketsScreen (Tab 0)</div>
+        <div class="flow-step"><div class="flow-num">2</div>กด TicketCard (ที่ยังไม่ใช้)</div>
+        <div class="flow-step"><div class="flow-num">3</div>GET /api/tickets/:ticketId</div>
+        <div class="flow-step"><div class="flow-num">4</div>แสดง QR Code (ZXing) + ข้อมูลตั๋ว</div>
+        <div class="flow-step"><div class="flow-num">5</div>หน้าจอสว่างสูงสุดเพื่อสแกน</div>
+      </div>
+      <div class="flow-card admin">
+        <h4>📷 Flow 4: Admin Check-in</h4>
+        <div class="flow-step"><div class="flow-num">1</div>AdminDashboard <span class="flow-arrow">→</span> AdminScanScreen</div>
+        <div class="flow-step"><div class="flow-num">2</div>กรอก / สแกน Ticket ID</div>
+        <div class="flow-step"><div class="flow-num">3</div>GET /api/tickets/:ticketId (verify)</div>
+        <div class="flow-step"><div class="flow-num">4</div>แสดงข้อมูลตั๋ว: ชื่อผู้ถือ/concert/โซน/ที่นั่ง</div>
+        <div class="flow-step"><div class="flow-num">5</div>กด "Check-in" → PUT /api/tickets/:id/use</div>
+        <div class="flow-step"><div class="flow-num">6</div>is_used = 1 → ตั๋วแสดง "ใช้แล้ว"</div>
+      </div>
+      <div class="flow-card">
+        <h4>👤 Flow 5: จัดการโปรไฟล์</h4>
+        <div class="flow-step"><div class="flow-num">1</div>Profile <span class="flow-arrow">→</span> กดปุ่ม Edit</div>
+        <div class="flow-step"><div class="flow-num">2</div>แก้ไขชื่อ/เบอร์ → POST /api/auth/update-profile</div>
+        <div class="flow-step"><div class="flow-num">3</div>Stats refresh อัตโนมัติทุกครั้งที่ ON_RESUME</div>
+        <div class="flow-step"><div class="flow-num">4</div>กด "ตั๋วของฉัน" → MyTicketsScreen (Tab 0)</div>
+        <div class="flow-step"><div class="flow-num">5</div>กด "ประวัติ" → MyTicketsScreen (Tab 1)</div>
+        <div class="flow-step"><div class="flow-num">6</div>เปลี่ยนรหัสผ่านผ่าน Dialog</div>
+      </div>
+      <div class="flow-card admin">
+        <h4>⚙️ Flow 6: Admin สร้าง Concert</h4>
+        <div class="flow-step"><div class="flow-num">1</div>AdminDashboard <span class="flow-arrow">→</span> CreateConcert</div>
+        <div class="flow-step"><div class="flow-num">2</div>กรอก title/venue/date/time</div>
+        <div class="flow-step"><div class="flow-num">3</div>Upload poster (POST /api/upload)</div>
+        <div class="flow-step"><div class="flow-num">4</div>เพิ่มโซน (Seated/Standing + ราคา + capacity)</div>
+        <div class="flow-step"><div class="flow-num">5</div>POST /api/concerts → สร้าง zones + auto-generate seats</div>
+        <div class="flow-step"><div class="flow-num">6</div>Seats สร้างแบบ A1..An ตาม seatsPerRow=5</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 8. ADMIN ===== -->
+<div class="section" style="background: white;" id="admin">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-number">8</div>
+      <div>
+        <div class="section-title">ระบบ Admin</div>
+        <div class="section-sub">การจัดการระบบสำหรับผู้ดูแล</div>
+      </div>
+    </div>
+
+    <h3>Soft Delete System</h3>
+    <div class="highlight-box">
+      เมื่อ Admin กด "ลบคอนเสิร์ต" ระบบจะ <strong>ไม่ลบข้อมูลจริง</strong> แต่เปลี่ยน <code>concerts.status = 'Cancelled'</code>
+      ทำให้ concert ไม่แสดงในหน้า Home แต่ตั๋วของ user ยังอยู่ในระบบ โดยแสดงสถานะ <strong style="color: #E53935;">ยกเลิก</strong> (สีแดง)
+    </div>
+
+    <h3>Concert Status Lifecycle</h3>
+    <table>
+      <thead><tr><th>Status</th><th>ความหมาย</th><th>แสดงใน Home</th><th>ตั๋วแสดงเป็น</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag">Upcoming</span></td><td>ประกาศแล้ว ยังไม่เปิดขาย</td><td>✅ แสดง</td><td>ปกติ</td></tr>
+        <tr><td><span class="tag">OnSale</span></td><td>เปิดจำหน่ายตั๋ว</td><td>✅ แสดง</td><td>ปกติ (กดดู QR ได้)</td></tr>
+        <tr><td><span class="tag">SoldOut</span></td><td>ตั๋วจำหน่ายหมดแล้ว</td><td>✅ แสดง</td><td>ปกติ</td></tr>
+        <tr><td><span class="tag">Ended</span></td><td>คอนเสิร์ตจบตามปกติ</td><td>❌ ซ่อน</td><td>จบไปแล้ว (สีเทา)</td></tr>
+        <tr><td><span class="tag" style="background:#FFEBEE;color:#C62828;">Cancelled</span></td><td>Admin ลบ (Soft Delete)</td><td>❌ ซ่อน</td><td>คอนเสิร์ตถูกยกเลิก (สีแดง)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Seat Management</h3>
+    <div class="warn-box">
+      <strong>Auto-generate seats:</strong> เมื่อสร้างโซนประเภท Seated ระบบจะ auto-generate seats ตาม capacity โดยใช้ A-Z เป็น row label และ 1-N เป็น number label (seatsPerRow = 5 by default)<br><br>
+      <strong>Toggle seat:</strong> Admin สามารถ toggle is_active ของแต่ละ seat ผ่าน AdminSeatLayoutScreen เพื่อปิด/เปิดที่นั่งชั่วคราว<br><br>
+      <strong>Reserve on booking:</strong> เมื่อ user จอง is_reserved = 1 จะถูก set ทันที (ใช้ MySQL Transaction + FOR UPDATE lock เพื่อป้องกัน race condition)
+    </div>
+
+    <h3>QR Code Format</h3>
+    <div class="highlight-box">
+      QR Content: <code>TICKETPOP|{bookingId}|{ticketId}|{zoneName}</code><br>
+      ตัวอย่าง: <code>TICKETPOP|22|32|Standing Floor</code><br>
+      Admin scan → verify ด้วย GET /api/tickets/:ticketId → check-in ด้วย PUT /api/tickets/:ticketId/use
+    </div>
+
+    <h3>Architecture Pattern</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="screen-icon">🎨</div>
+        <div>
+          <div class="screen-name">UI Layer (Composables)</div>
+          <div class="screen-desc">Screens รับ ViewModel และ NavController, observe StateFlow/State ด้วย collectAsState()</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🧠</div>
+        <div>
+          <div class="screen-name">ViewModel Layer</div>
+          <div class="screen-desc">AndroidViewModel จัดการ state (MutableStateFlow / mutableStateOf), เรียก Repository ผ่าน viewModelScope.launch</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🗄️</div>
+        <div>
+          <div class="screen-name">Repository Layer</div>
+          <div class="screen-desc">เรียก API ผ่าน Retrofit interface, unwrap ApiResponse<T>, throw Exception เมื่อ success=false</div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-icon">🌐</div>
+        <div>
+          <div class="screen-name">API Client (Retrofit)</div>
+          <div class="screen-desc">ApiClient singleton สร้าง Retrofit instance พร้อม GsonConverterFactory และ AuthInterceptor เพิ่ม JWT header</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="background: #1A1A2E; color: rgba(255,255,255,0.5); text-align: center; padding: 32px; font-size: 13px;">
+  <div style="color: white; font-weight: 700; font-size: 18px; margin-bottom: 8px;">TICKETPOP</div>
+  รายงานนี้จัดทำจากโค้ดจริงของระบบ — Backend: Node.js + MySQL | Frontend: Kotlin + Jetpack Compose
+  <div style="margin-top: 8px;">วันที่จัดทำ: มีนาคม 2026</div>
+</div>
+
+</body>
+</html>
