@@ -2,8 +2,8 @@
 
 package com.example.ticketpop.ui.ticket
 
-import android.graphics.Bitmap
 import android.view.WindowManager
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,8 +16,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,9 +27,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.ticketpop.data.model.Ticket
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.WriterException
-import com.google.zxing.qrcode.QRCodeWriter
 
 @Composable
 fun TicketQrScreen(
@@ -108,210 +105,281 @@ fun TicketQrScreen(
 // ==================== QR CONTENT ====================
 @Composable
 fun TicketQrContent(ticket: Ticket, onBack: () -> Unit = {}) {
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(Color(0xFF0F0C29), Color(0xFF302B63), Color(0xFF24243E))
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1A1A2E))
+            .background(gradientBackground)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // ปุ่มย้อนกลับ
+            // Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
                     onClick = { onBack() },
                     modifier = Modifier
                         .background(
-                            Color.White.copy(alpha = 0.12f),
+                            Color.White.copy(alpha = 0.1f),
                             RoundedCornerShape(12.dp)
                         )
-                        .size(42.dp)
+                        .size(40.dp)
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "ย้อนกลับ",
+                        contentDescription = "Back",
                         tint = Color.White
                     )
                 }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "My Digital Ticket",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            // ==================== QR CARD ใหญ่เต็มหน้า ====================
-            Card(
+            Spacer(modifier = Modifier.weight(0.5f))
+
+            // ==================== PREMIUM TICKET CARD ====================
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                    .padding(horizontal = 24.dp)
             ) {
+                // Physical Ticket Card
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(28.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxWidth()
+                        .background(Color.White, RoundedCornerShape(24.dp))
                 ) {
-
-                    // ชื่อคอนเสิร์ต
-                    Text(
-                        text = ticket.concertTitle,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        color = Color(0xFF1A1A2E)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // วันเวลา
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = Color(0xFF6B4EFF)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
+                    // Top Section (Details)
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 28.dp, start = 28.dp, end = 28.dp, bottom = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = "${ticket.showDate}  •  ${ticket.showTime}",
-                            fontSize = 13.sp,
-                            color = Color(0xFF888899)
+                            text = ticket.concertTitle.uppercase(),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            color = Color(0xFF1A1A2E),
+                            letterSpacing = 1.sp
                         )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = Color(0xFF6B4EFF)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "${ticket.showDate} • ${ticket.showTime}",
+                                fontSize = 14.sp,
+                                color = Color(0xFF555566),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = Color(0xFF6B4EFF)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = ticket.venueName,
+                                fontSize = 14.sp,
+                                color = Color(0xFF555566),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // สถานที่
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = Color(0xFF6B4EFF)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = ticket.venueName,
-                            fontSize = 13.sp,
-                            color = Color(0xFF888899)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // ==================== QR CODE ====================
-                    // format: TICKETPOP|ticketId|bookingId|zoneName
-                    // คนที่ 1 ใช้ format นี้ในการสแกนที่ AdminScanScreen
-                    // ==================== QR CODE ====================
-                    // ใช้ QR content ปลอม แต่ข้อมูลหน้าจอเป็นของจริง
-                    val qrContent = "TICKETPOP|MOCK|${ticket.ticketId}|${ticket.zoneName}"
-                    val qrBitmap = generateQrCode(qrContent)
-
+                    // Ticket Cutout Divider
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .padding(8.dp),
+                            .height(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (qrBitmap != null) {
-                            Image(
-                                bitmap = qrBitmap.asImageBitmap(),
-                                contentDescription = "QR Code ตั๋วเลขที่ ${ticket.ticketId}",
-                                modifier = Modifier.fillMaxSize()
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            // Left Cutout
+                            drawArc(
+                                color = Color.Transparent,
+                                startAngle = -90f,
+                                sweepAngle = 180f,
+                                useCenter = true,
+                                size = androidx.compose.ui.geometry.Size(48f, 48f),
+                                topLeft = androidx.compose.ui.geometry.Offset(-24f, 0f),
+                                blendMode = androidx.compose.ui.graphics.BlendMode.Clear
                             )
-                        } else {
-                            // กรณี generate QR ไม่สำเร็จ
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xFFF0F0F0), RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "ไม่สามารถสร้าง QR ได้",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
+                            // Right Cutout
+                            drawArc(
+                                color = Color.Transparent,
+                                startAngle = 90f,
+                                sweepAngle = 180f,
+                                useCenter = true,
+                                size = androidx.compose.ui.geometry.Size(48f, 48f),
+                                topLeft = androidx.compose.ui.geometry.Offset(size.width - 24f, 0f),
+                                blendMode = androidx.compose.ui.graphics.BlendMode.Clear
+                            )
+                            
+                            // Dashed Line
+                            val dashWidth = 8f
+                            val dashGap = 8f
+                            var x = 32f
+                            while (x < size.width - 32f) {
+                                drawLine(
+                                    color = Color(0xFFD0D0DD),
+                                    start = androidx.compose.ui.geometry.Offset(x, size.height / 2),
+                                    end = androidx.compose.ui.geometry.Offset(x + dashWidth, size.height / 2),
+                                    strokeWidth = 2f
                                 )
+                                x += dashWidth + dashGap
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
-                    HorizontalDivider(color = Color(0xFFF0F0F5))
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // ==================== ข้อมูลที่นั่ง ====================
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                    // Bottom Section (QR Code)
+                    Column(
+                        modifier = Modifier
+                            .padding(start = 28.dp, end = 28.dp, bottom = 28.dp, top = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        TicketInfoItem(label = "โซน", value = ticket.zoneName)
-                        if (ticket.seatId != null) {
-                            TicketInfoItem(label = "แถว", value = ticket.rowLabel ?: "-")
-                            TicketInfoItem(label = "เบอร์", value = ticket.numberLabel ?: "-")
-                        } else {
-                            TicketInfoItem(label = "ประเภท", value = "ยืนชม")
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .padding(16.dp)
+                                .background(Color(0xFFFAFAFF), RoundedCornerShape(16.dp))
+                                .padding(12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Compose-based QR Mockup
+                            QrMockupPattern()
                         }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Seat Info Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF4F4F9), RoundedCornerShape(16.dp))
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            TicketInfoDetailItem(label = "ZONE", value = ticket.zoneName)
+                            if (ticket.seatId != null) {
+                                TicketInfoDetailItem(label = "ROW", value = ticket.rowLabel ?: "-")
+                                TicketInfoDetailItem(label = "SEAT", value = ticket.numberLabel ?: "-")
+                            } else {
+                                TicketInfoDetailItem(label = "TYPE", value = "STANDING")
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = "HOLDER: VALUED GUEST",
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.5.sp
+                        )
                     }
                 }
             }
 
-            // ข้อความด้านล่าง
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Footer
             Text(
-                text = "แสดงหน้านี้ต่อเจ้าหน้าที่เพื่อเข้างาน",
-                fontSize = 13.sp,
-                color = Color.White.copy(alpha = 0.5f)
+                text = "PLEASE SHOW THIS QR AT THE GATE",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.5f),
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 2.sp
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
-// ==================== QR Generator ====================
-fun generateQrCode(content: String): Bitmap? {
-    return try {
-        val writer = QRCodeWriter()
-        val bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, 512, 512)
-        val width = bitMatrix.width
-        val height = bitMatrix.height
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                bitmap.setPixel(
-                    x, y,
-                    if (bitMatrix[x, y]) android.graphics.Color.BLACK
-                    else android.graphics.Color.WHITE
-                )
+
+// ==================== QR MOCKUP PATTERN ====================
+@Composable
+fun QrMockupPattern() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val size = size.width
+        val cellSize = size / 20
+        
+        // QR-like "eye" squares (Top-left, Top-right, Bottom-left)
+        fun drawEye(offset: androidx.compose.ui.geometry.Offset) {
+            val eyeSize = cellSize * 7
+            drawRect(Color.Black, offset, androidx.compose.ui.geometry.Size(eyeSize, eyeSize))
+            drawRect(Color.White, offset + androidx.compose.ui.geometry.Offset(cellSize, cellSize), androidx.compose.ui.geometry.Size(eyeSize - cellSize * 2, eyeSize - cellSize * 2))
+            drawRect(Color.Black, offset + androidx.compose.ui.geometry.Offset(cellSize * 2, cellSize * 2), androidx.compose.ui.geometry.Size(eyeSize - cellSize * 4, eyeSize - cellSize * 4))
+        }
+
+        drawEye(androidx.compose.ui.geometry.Offset(0f, 0f))
+        drawEye(androidx.compose.ui.geometry.Offset(size - cellSize * 7, 0f))
+        drawEye(androidx.compose.ui.geometry.Offset(0f, size - cellSize * 7))
+
+        // Random bits
+        val random = java.util.Random(123)
+        for (i in 0 until 20) {
+            for (j in 0 until 20) {
+                // Skip areas with eyes
+                if ((i < 8 && j < 8) || (i > 11 && j < 8) || (i < 8 && j > 11)) continue
+                
+                if (random.nextBoolean()) {
+                    drawRect(
+                        Color.Black,
+                        androidx.compose.ui.geometry.Offset(i * cellSize, j * cellSize),
+                        androidx.compose.ui.geometry.Size(cellSize, cellSize)
+                    )
+                }
             }
         }
-        bitmap
-    } catch (_: WriterException) {
-        null
     }
 }
 
-// ==================== INFO ITEM ====================
+// ==================== INFO DETAIL ITEM ====================
 @Composable
-fun TicketInfoItem(label: String, value: String) {
+fun TicketInfoDetailItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
-            fontSize = 12.sp,
-            color = Color(0xFF888899)
+            fontSize = 10.sp,
+            color = Color(0xFFAAAAAA),
+            fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = value,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold,
             color = Color(0xFF1A1A2E)
         )
     }

@@ -5,17 +5,16 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.ticketpop.data.model.*
-import com.example.ticketpop.data.remote.AuthApi
-import com.example.ticketpop.utils.Constants
+import com.example.ticketpop.data.model.UserProfile
+import com.example.ticketpop.data.model.UserStats
+import com.example.ticketpop.data.repository.AuthRepository
 import com.example.ticketpop.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import com.google.gson.Gson
+import com.example.ticketpop.data.model.ApiResponse
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -26,7 +25,7 @@ sealed class AuthState {
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val session = SessionManager(application)
+    private val repository = AuthRepository(SessionManager(application))
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState
@@ -37,16 +36,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _userStats = mutableStateOf<UserStats?>(null)
     val userStats: State<UserStats?> = _userStats
 
-    // สร้าง Retrofit instance
-    private val authApi = Retrofit.Builder()
-        .baseUrl(Constants.BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-        .create(AuthApi::class.java)
-
     init {
-        // โหลด User จาก Session ที่บันทึกไว้ (ถ้ามี)
-        val savedUser = session.getUser()
+        val savedUser = repository.getSavedUser()
         if (savedUser != null) {
             _currentUser.value = savedUser
             _authState.value = AuthState.Success(savedUser)
@@ -58,16 +49,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = authApi.login(LoginRequest(email, password))
-                if (response.success && response.data != null) {
-                    val user = response.data.user
-                    _currentUser.value = user
-                    session.saveUser(user, response.data.token)
-                    fetchUserStats(user.id)
-                    _authState.value = AuthState.Success(user)
-                } else {
-                    _authState.value = AuthState.Error(response.message)
-                }
+                val result = repository.login(email, password)
+                _currentUser.value = result.user
+                fetchUserStats(result.user.id)
+                _authState.value = AuthState.Success(result.user)
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 val errorMessage = try {
@@ -77,7 +62,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _authState.value = AuthState.Error(errorMessage)
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("เชื่อมต่อไม่ได้: ${e.localizedMessage}")
+                _authState.value = AuthState.Error(e.message ?: "เชื่อมต่อไม่ได้")
             }
         }
     }
@@ -86,15 +71,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = authApi.register(RegisterRequest(fullName, email, phone, password))
-                if (response.success && response.data != null) {
-                    val user = response.data.user
-                    _currentUser.value = user
-                    session.saveUser(user, response.data.token)
-                    _authState.value = AuthState.Success(user)
-                } else {
-                    _authState.value = AuthState.Error(response.message)
-                }
+                val result = repository.register(fullName, email, phone, password)
+                _currentUser.value = result.user
+                _authState.value = AuthState.Success(result.user)
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 val errorMessage = try {
@@ -104,7 +83,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _authState.value = AuthState.Error(errorMessage)
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("สมัครสมาชิกไม่ได้: ${e.localizedMessage}")
+                _authState.value = AuthState.Error(e.message ?: "สมัครสมาชิกไม่ได้")
             }
         }
     }
@@ -112,8 +91,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun fetchUserStats(userId: String) {
         viewModelScope.launch {
             try {
-                val stats = authApi.getUserStats(userId)
-                _userStats.value = stats
+                _userStats.value = repository.getUserStats(userId)
             } catch (e: Exception) {
                 _userStats.value = UserStats("0", "0", "0")
             }
@@ -123,11 +101,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun updateProfile(userId: String, fullName: String, phone: String) {
         viewModelScope.launch {
             try {
-                val response = authApi.updateProfile(UpdateProfileRequest(userId, fullName, phone))
-                if (response.success && response.data != null) {
-                    _currentUser.value = response.data
-                    session.saveUser(response.data, session.getToken())
-                }
+                val updated = repository.updateProfile(userId, fullName, phone)
+                _currentUser.value = updated
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("อัปเดตไม่สำเร็จ: ${e.localizedMessage}")
             }
@@ -136,12 +111,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun changePassword(userId: String, oldPass: String, newPass: String, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
-            try {
-                val response = authApi.changePassword(ChangePasswordRequest(userId, oldPass, newPass))
-                onResult(response.success, response.message)
-            } catch (e: Exception) {
-                onResult(false, "เปลี่ยนรหัสผ่านไม่ได้: ${e.localizedMessage}")
-            }
+            val (success, message) = repository.changePassword(userId, oldPass, newPass)
+            onResult(success, message)
         }
     }
 
@@ -149,6 +120,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _currentUser.value = null
         _userStats.value = null
         _authState.value = AuthState.Idle
-        session.clearSession()
+        repository.logout()
     }
 }

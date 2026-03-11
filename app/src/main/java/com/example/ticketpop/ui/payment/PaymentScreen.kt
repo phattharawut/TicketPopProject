@@ -3,6 +3,8 @@ package com.example.ticketpop.ui.payment
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,25 +15,42 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentScreen(paymentMethod: String, onSuccess: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF7F7F7))
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // หัวข้อเปลี่ยนตามวิธีที่เลือก
-        Text(
-            text = if (paymentMethod == "PromptPay") "สแกน QR Code" else "ข้อมูลบัตรเครดิต",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
+fun PaymentScreen(
+    paymentMethod: String,
+    onBack: () -> Unit,
+    onSuccess: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (paymentMethod == "PromptPay") "สแกน QR Code" else "ข้อมูลบัตรเครดิต",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color(0xFFF7F7F7))
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
 
-        Spacer(modifier = Modifier.height(30.dp))
-
-        if (paymentMethod == "PromptPay") {
+            if (paymentMethod == "PromptPay") {
             // --- ส่วนแสดง PromptPay ---
             Card(
                 modifier = Modifier.size(280.dp),
@@ -96,17 +115,18 @@ fun PaymentScreen(paymentMethod: String, onSuccess: () -> Unit) {
         }
     }
 }
+}
 
 // --- ส่วน Preview เพื่อเช็คความสวยงาม ---
 
 @Preview(showBackground = true, name = "Preview: PromptPay Mode")
 @Composable
 fun PaymentPromptPayPreview() {
-    PaymentScreen(paymentMethod = "PromptPay", onSuccess = {})
+    PaymentScreen(paymentMethod = "PromptPay", onBack = {}, onSuccess = {})
 }
 
 @Preview(showBackground = true, name = "Preview: Credit Card Mode")
 @Composable
 fun PaymentCreditCardPreview() {
-    PaymentScreen(paymentMethod = "CreditCard", onSuccess = {})
+    PaymentScreen(paymentMethod = "CreditCard", onBack = {}, onSuccess = {})
 }

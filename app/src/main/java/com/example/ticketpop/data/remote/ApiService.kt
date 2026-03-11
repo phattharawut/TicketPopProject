@@ -18,8 +18,14 @@ interface ApiService {
 
     @GET("api/zones/{concertId}")
     suspend fun getZones(@Path("concertId") concertId: Int): ApiResponse<List<Zone>>
-    @GET("api/zones/{zoneId}/seats")
+    @GET("api/seats/{zoneId}")
     suspend fun getSeats(@Path("zoneId") zoneId: Int): ApiResponse<List<Seat>>
+
+    @GET("api/concerts/{concertId}/zones-seats")
+    suspend fun getConcertZonesWithSeats(@Path("concertId") concertId: Int): ApiResponse<List<com.example.ticketpop.data.model.ZoneWithSeats>>
+
+    @PUT("api/seats/{seatId}/toggle")
+    suspend fun toggleSeatStatus(@Path("seatId") seatId: Int): ApiResponse<com.example.ticketpop.data.model.SeatToggleResponse>
 
     @POST("api/bookings")
     suspend fun createBooking(@Body request: BookingRequest): ApiResponse<BookingResponse>

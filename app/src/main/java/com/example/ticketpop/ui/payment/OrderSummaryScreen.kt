@@ -3,6 +3,8 @@ package com.example.ticketpop.ui.payment
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,12 +19,14 @@ import com.example.ticketpop.data.model.Concert
 import com.example.ticketpop.data.model.Zone
 import com.example.ticketpop.data.model.Seat
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderSummaryScreen(
     concert: Concert,       // รับข้อมูลจาก Concert.kt
     zone: Zone,             // รับข้อมูลจาก Zone.kt
     selectedSeats: List<Seat>, // รับรายชื่อที่นั่งจาก Seat.kt
     standingCount: Int = 0,
+    onBack: () -> Unit,
     onNext: (String) -> Unit
 ) {
     var selectedMethod by remember { mutableStateOf("PromptPay") }
@@ -34,18 +38,37 @@ fun OrderSummaryScreen(
     val fee = 40.0
     val totalAmount = subTotal + fee
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA)).padding(20.dp)
-    ) {
-        Text("สรุปรายการจอง", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(2.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("สรุปรายการจอง", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color(0xFFF8F9FA))
+                .padding(20.dp)
         ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 // ดึงชื่อจาก Concert.kt
                 Text(text = concert.title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF6200EE))
@@ -89,13 +112,14 @@ fun OrderSummaryScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = { onNext(selectedMethod) },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
-        ) {
-            Text("ดำเนินการชำระเงิน", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Button(
+                onClick = { onNext(selectedMethod) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
+            ) {
+                Text("ดำเนินการชำระเงิน", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -175,6 +199,7 @@ fun OrderSummaryPreview() {
         concert = mockConcert,
         zone = mockZone,
         selectedSeats = mockSeats,
+        onBack = {},
         onNext = { method -> println("Selected: $method") }
     )
 }

@@ -34,8 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
-import com.example.ticketpop.data.model.CreateConcertRequest
-import com.example.ticketpop.data.model.ZoneRequest
+import com.example.ticketpop.data.model.EditConcertRequest
 import java.util.Calendar
 
 private val AdminBg      = Color(0xFF0F0F1A)
@@ -52,7 +51,8 @@ private val AdminDivider = Color(0xFF2A2A4A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminCreateConcertScreen(
+fun AdminEditConcertScreen(
+    concertId: Int,
     viewModel: AdminViewModel,
     onBack: () -> Unit
 ) {
@@ -61,18 +61,42 @@ fun AdminCreateConcertScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    // Use concertList instead of recentConcerts for full data model
+    val concert = viewModel.concertList.find { it.concertId == concertId }
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var venueName by remember { mutableStateOf("") }
     var showDate by remember { mutableStateOf("") }
-    var showTime by remember { mutableStateOf("") }
-    val zones = remember { mutableStateListOf(ZoneState()) }
+    var showTime by remember { mutableStateOf("19:00") }
+    var status by remember { mutableStateOf("Active") }
+
+    // Load full concert list on start
+    LaunchedEffect(Unit) {
+        viewModel.loadConcerts()
+    }
+
+    // Sync state when concert data is loaded/found
+    LaunchedEffect(concert) {
+        concert?.let {
+            title = it.title
+            description = it.description ?: ""
+            venueName = it.venueName
+            showDate = it.showDate
+            showTime = it.showTime
+            status = it.status
+        }
+    }
 
     // Dialog visibility
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    val posterImageUrl = viewModel.uploadedPosterUrl.value
+    val posterImageUrl = if (viewModel.uploadedPosterUrl.value.isNotEmpty()) {
+        viewModel.uploadedPosterUrl.value
+    } else {
+        concert?.posterImageUrl ?: ""
+    }
 
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val imagePicker = rememberLauncherForActivityResult(
@@ -92,6 +116,7 @@ fun AdminCreateConcertScreen(
                 snackbarHostState.showSnackbar((state as AdminState.Success).message)
                 viewModel.resetState()
                 viewModel.resetUpload()
+                viewModel.loadDashboardData() // Reload to reflect changes
                 onBack()
             }
             is AdminState.Error -> {
@@ -222,7 +247,7 @@ fun AdminCreateConcertScreen(
             Column {
                 TopAppBar(
                     title = {
-                        Text("สร้างคอนเสิร์ต", color = AdminText, fontWeight = FontWeight.Bold)
+                        Text("แก้ไขคอนเสิร์ต", color = AdminText, fontWeight = FontWeight.Bold)
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
@@ -251,15 +276,15 @@ fun AdminCreateConcertScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // --- Concert Info ---
-            AdminSectionHeader(icon = Icons.Default.MusicNote, title = "ข้อมูลคอนเสิร์ต")
+            AdminEditSectionHeader(icon = Icons.Default.MusicNote, title = "ข้อมูลคอนเสิร์ต")
 
-            DarkTextField(value = title, onValueChange = { title = it }, label = "ชื่อคอนเสิร์ต", leadingIcon = Icons.Default.Title)
-            DarkTextField(value = description, onValueChange = { description = it }, label = "รายละเอียด", leadingIcon = Icons.Default.Description, minLines = 2)
-            DarkTextField(value = venueName, onValueChange = { venueName = it }, label = "สถานที่จัดงาน", leadingIcon = Icons.Default.LocationOn)
+            AdminEditDarkTextField(value = title, onValueChange = { title = it }, label = "ชื่อคอนเสิร์ต", leadingIcon = Icons.Default.Title)
+            AdminEditDarkTextField(value = description, onValueChange = { description = it }, label = "รายละเอียด", leadingIcon = Icons.Default.Description, minLines = 2)
+            AdminEditDarkTextField(value = venueName, onValueChange = { venueName = it }, label = "สถานที่จัดงาน", leadingIcon = Icons.Default.LocationOn)
 
             // Date + Time row — tap to open picker
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DateTimePickerField(
+                AdminEditDateTimePickerField(
                     value = showDate,
                     label = "วันที่",
                     placeholder = "เลือกวัน",
@@ -267,7 +292,7 @@ fun AdminCreateConcertScreen(
                     onClick = { showDatePicker = true },
                     modifier = Modifier.weight(1f)
                 )
-                DateTimePickerField(
+                AdminEditDateTimePickerField(
                     value = showTime,
                     label = "เวลา",
                     placeholder = "เลือกเวลา",
@@ -277,9 +302,34 @@ fun AdminCreateConcertScreen(
                 )
             }
 
+            // --- Status ---
+            AdminEditSectionHeader(icon = Icons.Default.Info, title = "สถานะคอนเสิร์ต")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                AdminEditStatusChip(
+                    text = "เปิดขาย (Active)",
+                    selected = status == "Active",
+                    color = AdminGreen,
+                    onClick = { status = "Active" }
+                )
+                AdminEditStatusChip(
+                    text = "ยกเลิก (Cancelled)",
+                    selected = status == "Cancelled",
+                    color = AdminRed,
+                    onClick = { status = "Cancelled" }
+                )
+                AdminEditStatusChip(
+                    text = "ที่นั่งอาจเต็ม (SoldOut)",
+                    selected = status == "SoldOut",
+                    color = AdminAmber,
+                    onClick = { status = "SoldOut" }
+                )
+            }
+
+
             // --- Poster Upload ---
-            AdminSectionHeader(icon = Icons.Default.Image, title = "รูปโปสเตอร์")
-            PosterUploadSection(
+            Spacer(Modifier.height(8.dp))
+            AdminEditSectionHeader(icon = Icons.Default.Image, title = "รูปโปสเตอร์")
+            AdminEditPosterUploadSection(
                 uploadState = uploadState,
                 selectedImageUri = selectedImageUri,
                 uploadedUrl = posterImageUrl,
@@ -290,27 +340,6 @@ fun AdminCreateConcertScreen(
                 }
             )
 
-            // --- Zones ---
-            Spacer(Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                AdminSectionHeader(icon = Icons.Default.ChairAlt, title = "โซนและราคา")
-                TextButton(
-                    onClick = { zones.add(ZoneState()) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = AdminViolet)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("เพิ่มโซน", fontWeight = FontWeight.SemiBold)
-                }
-            }
-
-            zones.forEachIndexed { index, zone ->
-                PremiumZoneCard(zone = zone, index = index, onRemove = { if (zones.size > 1) zones.removeAt(index) })
-            }
 
             Spacer(Modifier.height(8.dp))
 
@@ -327,24 +356,16 @@ fun AdminCreateConcertScreen(
             ) {
                 Button(
                     onClick = {
-                        viewModel.createConcert(
-                            CreateConcertRequest(
+                        viewModel.updateConcert(
+                            concertId,
+                            EditConcertRequest(
                                 title = title,
                                 description = description,
                                 venueName = venueName,
                                 showDate = showDate,
                                 showTime = showTime,
                                 posterImageUrl = posterImageUrl,
-                                zones = zones.map {
-                                    ZoneRequest(
-                                        zoneName = it.name,
-                                        type = it.type,
-                                        price = it.price.toDoubleOrNull() ?: 0.0,
-                                        capacity = it.capacity,
-                                        colorCode = it.color,
-                                        seatsPerRow = it.seatsPerRow.toIntOrNull() ?: 0
-                                    )
-                                }
+                                status = status
                             )
                         )
                     },
@@ -356,9 +377,9 @@ fun AdminCreateConcertScreen(
                     if (state is AdminState.Loading) {
                         CircularProgressIndicator(color = AdminSubText, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Default.Check, contentDescription = null)
+                        Icon(Icons.Default.Save, contentDescription = null)
                         Spacer(Modifier.width(10.dp))
-                        Text("บันทึกคอนเสิร์ต", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("อัปเดตข้อมูล", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -371,7 +392,7 @@ fun AdminCreateConcertScreen(
 // ===== Date/Time Picker Field (read-only, tap to open dialog) =====
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DateTimePickerField(
+fun AdminEditDateTimePickerField(
     value: String,
     label: String,
     placeholder: String,
@@ -410,7 +431,7 @@ fun DateTimePickerField(
 
 // ===== Poster Upload Section =====
 @Composable
-fun PosterUploadSection(
+fun AdminEditPosterUploadSection(
     uploadState: UploadState,
     selectedImageUri: Uri?,
     uploadedUrl: String,
@@ -426,18 +447,19 @@ fun PosterUploadSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
+                .clickable { onPickImage() }
         ) {
             when (uploadState) {
                 is UploadState.Idle -> {
-                    if (selectedImageUri != null) {
+                    if (uploadedUrl.isNotEmpty() || selectedImageUri != null) {
                         AsyncImage(
-                            model = selectedImageUri,
+                            model = selectedImageUri ?: uploadedUrl,
                             contentDescription = "รูปโปสเตอร์",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))
                         )
                     } else {
-                        IdlePosterPlaceholder(onClick = onPickImage)
+                        AdminEditIdlePosterPlaceholder(onClick = onPickImage)
                     }
                 }
 
@@ -568,7 +590,7 @@ fun PosterUploadSection(
 }
 
 @Composable
-private fun IdlePosterPlaceholder(onClick: () -> Unit) {
+private fun AdminEditIdlePosterPlaceholder(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -602,7 +624,7 @@ private fun IdlePosterPlaceholder(onClick: () -> Unit) {
 
 // ===== Section Header =====
 @Composable
-fun AdminSectionHeader(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String) {
+fun AdminEditSectionHeader(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(icon, contentDescription = null, tint = AdminViolet, modifier = Modifier.size(18.dp))
         Text(title, color = AdminSubText, fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.sp)
@@ -612,14 +634,13 @@ fun AdminSectionHeader(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
 // ===== DarkTextField =====
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DarkTextField(
+fun AdminEditDarkTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     leadingIcon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier,
     placeholder: String = "",
-    isNumber: Boolean = false,
     minLines: Int = 1
 ) {
     OutlinedTextField(
@@ -631,7 +652,6 @@ fun DarkTextField(
         modifier = modifier.fillMaxWidth(),
         minLines = minLines,
         shape = RoundedCornerShape(14.dp),
-        keyboardOptions = KeyboardOptions(keyboardType = if (isNumber) KeyboardType.Number else KeyboardType.Text),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = AdminViolet,
             unfocusedBorderColor = AdminDivider,
@@ -646,239 +666,24 @@ fun DarkTextField(
     )
 }
 
-// ===== Zone Card =====
-@Composable
-fun PremiumZoneCard(zone: ZoneState, index: Int, onRemove: () -> Unit) {
-    val accentColor = when (index % 4) {
-        0 -> AdminViolet
-        1 -> AdminPink
-        2 -> AdminGreen
-        else -> AdminRed
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = AdminCard)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("${index + 1}", color = accentColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                    Text("โซนที่ ${index + 1}", color = AdminText, fontWeight = FontWeight.Bold)
-                }
-                IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "ลบ", tint = AdminRed, modifier = Modifier.size(18.dp))
-                }
-            }
-
-            DarkTextField(value = zone.name, onValueChange = { zone.name = it }, label = "ชื่อโซน", leadingIcon = Icons.Default.Label)
-
-            // Type selector
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SeatedChip(zone = zone, accentColor = accentColor)
-                StandingChip(zone = zone, accentColor = accentColor)
-            }
-
-            // ราคา
-            DarkTextField(
-                value = zone.price, onValueChange = { zone.price = it },
-                label = "ราคา (บาท)", leadingIcon = Icons.Default.Payments,
-                isNumber = true
-            )
-
-            if (zone.type == "Seated") {
-                // Seated: กรอก แถว × ที่นั่ง/แถว
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    DarkTextField(
-                        value = zone.rows,
-                        onValueChange = { if (it.length <= 2) zone.rows = it },
-                        label = "จำนวนแถว",
-                        leadingIcon = Icons.Default.TableRows,
-                        isNumber = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    DarkTextField(
-                        value = zone.seatsPerRow,
-                        onValueChange = { if (it.length <= 2) zone.seatsPerRow = it },
-                        label = "ที่นั่ง/แถว",
-                        leadingIcon = Icons.Default.EventSeat,
-                        isNumber = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                // แสดง capacity ที่คำนวณได้ + mini seat map preview
-                val totalSeats = zone.capacity
-                if (totalSeats > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = accentColor.copy(alpha = 0.08f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "ที่นั่งรวม: $totalSeats ที่",
-                                    color = accentColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
-                                Text(
-                                    "${zone.rows} แถว × ${zone.seatsPerRow} ที่",
-                                    color = AdminSubText,
-                                    fontSize = 11.sp
-                                )
-                            }
-
-                            // Mini seat map preview (max 6 แถว × max 10 ที่)
-                            val previewRows = minOf(zone.rows.toIntOrNull() ?: 0, 6)
-                            val previewCols = minOf(zone.seatsPerRow.toIntOrNull() ?: 0, 10)
-                            val letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-                            if (previewRows > 0 && previewCols > 0) {
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    repeat(previewRows) { row ->
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                "${letters[row]}",
-                                                color = AdminSubText,
-                                                fontSize = 8.sp,
-                                                modifier = Modifier.width(10.dp)
-                                            )
-                                            repeat(previewCols) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(14.dp)
-                                                        .clip(RoundedCornerShape(2.dp))
-                                                        .background(accentColor.copy(alpha = 0.4f))
-                                                )
-                                            }
-                                            if ((zone.seatsPerRow.toIntOrNull() ?: 0) > 10) {
-                                                Text("...", color = AdminSubText, fontSize = 8.sp)
-                                            }
-                                        }
-                                    }
-                                    if ((zone.rows.toIntOrNull() ?: 0) > 6) {
-                                        Text("... ${(zone.rows.toIntOrNull() ?: 0) - 6} แถวที่เหลือ", color = AdminSubText, fontSize = 9.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Standing: กรอก capacity ตรง
-                DarkTextField(
-                    value = zone.standingCapacity,
-                    onValueChange = { zone.standingCapacity = it },
-                    label = "จำนวนคนสูงสุด",
-                    leadingIcon = Icons.Default.Groups,
-                    isNumber = true
-                )
-                if (zone.capacity > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = accentColor.copy(alpha = 0.08f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(Icons.Default.Groups, contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp))
-                            Text("รับได้ ${zone.capacity} คน", color = accentColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SeatedChip(zone: ZoneState, accentColor: androidx.compose.ui.graphics.Color) {
-    val selected = zone.type == "Seated"
+fun AdminEditStatusChip(text: String, selected: Boolean, color: Color, onClick: () -> Unit) {
     FilterChip(
         selected = selected,
-        onClick = { zone.type = "Seated" },
-        label = { Text("มีที่นั่ง", fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
+        onClick = onClick,
+        label = { Text(text, fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = accentColor.copy(alpha = 0.2f),
-            selectedLabelColor = accentColor,
+            selectedContainerColor = color.copy(alpha = 0.2f),
+            selectedLabelColor = color,
             containerColor = Color(0xFF2A2A4A),
             labelColor = Color(0xFF9E9EBE)
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true, selected = selected,
-            selectedBorderColor = accentColor.copy(alpha = 0.5f),
+            selectedBorderColor = color.copy(alpha = 0.5f),
             borderColor = Color.Transparent
         )
     )
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun StandingChip(zone: ZoneState, accentColor: androidx.compose.ui.graphics.Color) {
-    val selected = zone.type == "Standing"
-    FilterChip(
-        selected = selected,
-        onClick = { zone.type = "Standing" },
-        label = { Text("ยืน", fontSize = 12.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = accentColor.copy(alpha = 0.2f),
-            selectedLabelColor = accentColor,
-            containerColor = Color(0xFF2A2A4A),
-            labelColor = Color(0xFF9E9EBE)
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true, selected = selected,
-            selectedBorderColor = accentColor.copy(alpha = 0.5f),
-            borderColor = Color.Transparent
-        )
-    )
-}
-
-// ===== Zone State Holder =====
-class ZoneState {
-    var name by mutableStateOf("")
-    var type by mutableStateOf("Seated")
-    var price by mutableStateOf("")
-    var rows by mutableStateOf("4")          // จำนวนแถว (Seated เท่านั้น)
-    var seatsPerRow by mutableStateOf("5")   // ที่นั่งต่อแถว (Seated เท่านั้น)
-    var standingCapacity by mutableStateOf("") // สำหรับ Standing
-    var color by mutableStateOf("#7B2FBE")
-
-    // capacity คำนวณเอง
-    val capacity: Int get() = if (type == "Standing") {
-        standingCapacity.toIntOrNull() ?: 0
-    } else {
-        (rows.toIntOrNull() ?: 0) * (seatsPerRow.toIntOrNull() ?: 0)
-    }
-}
+private val AdminAmber = Color(0xFFFFB300)

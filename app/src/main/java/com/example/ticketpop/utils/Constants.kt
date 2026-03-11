@@ -34,4 +34,6 @@ object Constants {
     const val ROUTE_ADMIN_DASH     = "admin/dashboard"
     const val ROUTE_ADMIN_CREATE   = "admin/create_concert"
     const val ROUTE_ADMIN_SCAN     = "admin/scan"
+    const val ROUTE_ADMIN_SEAT_LAYOUT = "admin/seat_layout/{concertId}"
+    const val ROUTE_ADMIN_EDIT     = "admin/edit_concert/{concertId}"
 }

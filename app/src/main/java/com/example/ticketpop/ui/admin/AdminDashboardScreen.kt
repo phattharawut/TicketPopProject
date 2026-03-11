@@ -2,6 +2,7 @@ package com.example.ticketpop.ui.admin
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,9 +19,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.ticketpop.data.model.Concert
 import com.example.ticketpop.ui.auth.AuthViewModel
 
 // Admin-only dark color palette
@@ -41,11 +45,26 @@ private val AdminDivider = Color(0xFF2A2A4A)
 @Composable
 fun AdminDashboardScreen(
     viewModel: AuthViewModel,
+    adminViewModel: AdminViewModel,
     onLogout: () -> Unit,
     onNavigateToCreateConcert: () -> Unit,
-    onNavigateToScan: () -> Unit
+    onNavigateToScan: () -> Unit,
+    onNavigateToSeats: (Int) -> Unit,
+    onNavigateToHome: () -> Unit,
+    onEditConcert: (Int) -> Unit
 ) {
     val user = viewModel.currentUser.value
+    val stats = adminViewModel.adminStats
+    val isStatsLoading = adminViewModel.isStatsLoading
+    val dashboardError = adminViewModel.dashboardError
+    val allConcerts = adminViewModel.concertList
+    val isConcertsLoading = adminViewModel.isConcertsLoading
+    val concertsError = adminViewModel.concertsError
+
+    LaunchedEffect(Unit) {
+        adminViewModel.loadDashboardData()
+        adminViewModel.loadConcerts()
+    }
 
     Scaffold(
         topBar = {
@@ -57,12 +76,12 @@ fun AdminDashboardScreen(
                     }
                 },
                 actions = {
-                    // Admin avatar
                     Box(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(AdminPurple, AdminPink))),
+                            .background(Brush.linearGradient(listOf(AdminPurple, AdminPink)))
+                            .clickable { onNavigateToHome() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -73,6 +92,9 @@ fun AdminDashboardScreen(
                         )
                     }
                     Spacer(Modifier.width(8.dp))
+                    IconButton(onClick = onNavigateToHome) {
+                        Icon(Icons.Default.Home, contentDescription = "Go to App", tint = AdminText)
+                    }
                     IconButton(onClick = { viewModel.logout(); onLogout() }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout", tint = AdminRed)
                     }
@@ -95,16 +117,14 @@ fun AdminDashboardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.horizontalGradient(listOf(AdminPurple, AdminPink))
-                        )
+                        .background(Brush.horizontalGradient(listOf(AdminPurple, AdminPink)))
                         .padding(20.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("สวัสดี, ${user?.fullName ?: "Admin"} 👋", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(4.dp))
-                            Text("วันนี้มีกิจกรรม 3 รายการ", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
+                            Text("ยินดีต้อนรับสู่ระบบจัดการ", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
                         }
                         Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(56.dp))
                     }
@@ -113,16 +133,67 @@ fun AdminDashboardScreen(
 
             // --- Stats Grid ---
             item {
-                Text("ภาพรวมระบบ", color = AdminSubText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AdminStatCard("ยอดขายวันนี้", "฿45,000", Icons.Default.TrendingUp, AdminGreen, Modifier.weight(1f))
-                    AdminStatCard("ตั๋วที่ขาย", "128", Icons.Default.ConfirmationNumber, AdminAmber, Modifier.weight(1f))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("ภาพรวมระบบ", color = AdminSubText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+                    if (dashboardError != null) {
+                        TextButton(onClick = { adminViewModel.loadDashboardData() }) {
+                            Text("ลองใหม่", color = AdminAmber, fontSize = 11.sp)
+                        }
+                    }
                 }
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AdminStatCard("คอนเสิร์ต", "5", Icons.Default.LibraryMusic, AdminViolet, Modifier.weight(1f))
-                    AdminStatCard("อัตราเข้าชม", "76%", Icons.Default.GroupAdd, AdminPink, Modifier.weight(1f))
+                Spacer(Modifier.height(10.dp))
+                if (isStatsLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AdminViolet, modifier = Modifier.size(28.dp))
+                    }
+                } else if (dashboardError != null && stats == null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AdminRed.copy(alpha = 0.1f))
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.WifiOff, contentDescription = null, tint = AdminRed, modifier = Modifier.size(24.dp))
+                            Spacer(Modifier.height(6.dp))
+                            Text(dashboardError ?: "", color = AdminRed, fontSize = 12.sp)
+                        }
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AdminStatCard(
+                            "ยอดขายรวม",
+                            "฿${stats?.totalRevenue ?: "-"}",
+                            Icons.Default.TrendingUp, AdminGreen, Modifier.weight(1f)
+                        )
+                        AdminStatCard(
+                            "ตั๋วทั้งหมด",
+                            stats?.totalTickets ?: "-",
+                            Icons.Default.ConfirmationNumber, AdminAmber, Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AdminStatCard(
+                            "คอนเสิร์ต",
+                            stats?.totalConcerts ?: "-",
+                            Icons.Default.LibraryMusic, AdminViolet, Modifier.weight(1f)
+                        )
+                        AdminStatCard(
+                            "อัตราเข้าชม",
+                            stats?.attendanceRate ?: "-",
+                            Icons.Default.GroupAdd, AdminPink, Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -148,17 +219,61 @@ fun AdminDashboardScreen(
                 }
             }
 
-            // --- Recent Concerts ---
+            // --- All Concerts ---
             item {
-                Text("คอนเสิร์ตล่าสุด", color = AdminSubText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("คอนเสิร์ตทั้งหมด", color = AdminSubText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isConcertsLoading) {
+                            CircularProgressIndicator(color = AdminViolet, modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        if (concertsError != null) {
+                            TextButton(onClick = { adminViewModel.loadConcerts() }) {
+                                Text("ลองใหม่", color = AdminAmber, fontSize = 11.sp)
+                            }
+                        } else {
+                            Text(
+                                "${allConcerts.size} รายการ",
+                                color = AdminViolet,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+                if (concertsError != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(concertsError ?: "", color = AdminRed, fontSize = 11.sp)
+                }
             }
 
-            items(listOf(
-                Triple("BTS World Tour 2025", "20 มี.ค. 2025", "กำลังขาย"),
-                Triple("BLACKPINK Live Stage", "05 เม.ย. 2025", "กำลังขาย"),
-                Triple("Jazz in the Park", "18 เม.ย. 2025", "เร็วๆ นี้"),
-            )) { (name, date, status) ->
-                AdminConcertRow(name, date, status)
+            if (allConcerts.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.LibraryMusic, contentDescription = null, tint = AdminSubText, modifier = Modifier.size(36.dp))
+                            Spacer(Modifier.height(8.dp))
+                            Text("ยังไม่มีคอนเสิร์ตในระบบ", color = AdminSubText, fontSize = 13.sp)
+                        }
+                    }
+                }
+            } else {
+                items(allConcerts, key = { it.concertId }) { concert ->
+                    AdminConcertCard(
+                        concert = concert,
+                        onClick = { onEditConcert(concert.concertId) }
+                    )
+                }
             }
 
             item { Spacer(Modifier.height(16.dp)) }
@@ -184,7 +299,7 @@ fun AdminStatCard(label: String, value: String, icon: ImageVector, accent: Color
                 Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.height(12.dp))
-            Text(value, color = AdminText, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+            Text(value, color = AdminText, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
             Text(label, color = AdminSubText, fontSize = 11.sp)
         }
     }
@@ -214,42 +329,98 @@ fun AdminActionButton(label: String, icon: ImageVector, gradient: List<Color>, m
 }
 
 @Composable
-fun AdminConcertRow(name: String, date: String, status: String) {
-    val statusColor = if (status == "กำลังขาย") AdminGreen else AdminAmber
+fun AdminConcertCard(concert: Concert, onClick: () -> Unit) {
+    val statusColor = when (concert.status.lowercase()) {
+        "active" -> AdminGreen
+        "cancelled" -> AdminRed
+        "soldout" -> AdminRed
+        else -> AdminAmber
+    }
+    val statusLabel = when (concert.status.lowercase()) {
+        "active" -> "กำลังขาย"
+        "cancelled" -> "ยกเลิก"
+        "soldout" -> "จำหน่ายหมด"
+        else -> concert.status
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = AdminCard)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Poster thumbnail
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(AdminPurple.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.MusicNote, contentDescription = null, tint = AdminViolet)
+                if (!concert.posterImageUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = concert.posterImageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
+                    )
+                } else {
+                    Icon(Icons.Default.MusicNote, contentDescription = null, tint = AdminViolet, modifier = Modifier.size(28.dp))
+                }
             }
+
             Spacer(Modifier.width(14.dp))
+
+            // Info
             Column(modifier = Modifier.weight(1f)) {
-                Text(name, color = AdminText, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text(date, color = AdminSubText, fontSize = 12.sp)
-            }
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = statusColor.copy(alpha = 0.15f)
-            ) {
                 Text(
-                    status,
-                    color = statusColor,
-                    fontSize = 11.sp,
+                    concert.title,
+                    color = AdminText,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    fontSize = 14.sp,
+                    maxLines = 1
                 )
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = AdminSubText, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text(concert.venueName, color = AdminSubText, fontSize = 11.sp, maxLines = 1)
+                }
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = AdminSubText, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text(concert.showDate, color = AdminSubText, fontSize = 11.sp)
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = statusColor.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            statusLabel,
+                            color = statusColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Edit, contentDescription = null, tint = AdminViolet, modifier = Modifier.size(12.dp))
+                        Spacer(Modifier.width(3.dp))
+                        Text("แตะเพื่อแก้ไข", color = AdminViolet, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
             }
         }
     }

@@ -13,5 +13,5 @@ data class BookingRequest(
 data class BookingResponse(
     val bookingId: Int,
     val status: String,
-    val message: String
+    val message: String = ""
 )

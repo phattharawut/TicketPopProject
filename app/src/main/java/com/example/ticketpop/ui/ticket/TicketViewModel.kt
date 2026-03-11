@@ -1,12 +1,11 @@
 package com.example.ticketpop.ui.ticket
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ticketpop.data.model.Ticket
-import com.example.ticketpop.data.remote.ApiClient
-import com.example.ticketpop.utils.Constants
+import com.example.ticketpop.data.repository.TicketRepository
+import com.example.ticketpop.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -16,9 +15,7 @@ import java.util.Locale
 
 class TicketViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val prefs = application.getSharedPreferences(
-        Constants.PREF_NAME, Context.MODE_PRIVATE
-    )
+    private val repository = TicketRepository(SessionManager(application))
 
     private val _myTickets = MutableStateFlow<List<Ticket>>(emptyList())
     val myTickets: StateFlow<List<Ticket>> = _myTickets
@@ -37,16 +34,7 @@ class TicketViewModel(application: Application) : AndroidViewModel(application) 
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val token = prefs.getString(Constants.KEY_JWT_TOKEN, "") ?: ""
-                val response = ApiClient.apiService.getMyTickets(
-                    userId = userId,
-                    authorization = "Bearer $token"
-                )
-                if (response.success) {
-                    _myTickets.value = response.data ?: emptyList()
-                } else {
-                    _errorMessage.value = response.message
-                }
+                _myTickets.value = repository.getMyTickets(userId)
             } catch (e: Exception) {
                 _errorMessage.value = "โหลดข้อมูลไม่สำเร็จ: ${e.message}"
             } finally {
@@ -60,16 +48,7 @@ class TicketViewModel(application: Application) : AndroidViewModel(application) 
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val token = prefs.getString(Constants.KEY_JWT_TOKEN, "") ?: ""
-                val response = ApiClient.apiService.getTicketDetail(
-                    ticketId = ticketId,
-                    authorization = "Bearer $token"
-                )
-                if (response.success) {
-                    _ticketDetail.value = response.data
-                } else {
-                    _errorMessage.value = response.message
-                }
+                _ticketDetail.value = repository.getTicketDetail(ticketId)
             } catch (e: Exception) {
                 _errorMessage.value = "โหลดข้อมูลไม่สำเร็จ: ${e.message}"
             } finally {

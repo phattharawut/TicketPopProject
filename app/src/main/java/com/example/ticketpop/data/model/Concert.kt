@@ -9,6 +9,7 @@ data class Concert(
     val showTime: String,
     val posterImageUrl: String?,
     val status: String,
-    val minPrice: Double? = null,  // ✅
-    val maxPrice: Double? = null   // ✅
+    val minPrice: Double? = null,
+    val minPriceZone: String? = null,
+    val maxPrice: Double? = null
 )

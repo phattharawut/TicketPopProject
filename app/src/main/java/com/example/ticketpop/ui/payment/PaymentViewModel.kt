@@ -6,10 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ticketpop.data.model.BookingRequest
 import com.example.ticketpop.data.model.BookingResponse
-import com.example.ticketpop.data.remote.ApiClient
+import com.example.ticketpop.data.repository.BookingRepository
 import kotlinx.coroutines.launch
 
 class PaymentViewModel : ViewModel() {
+
+    private val repository = BookingRepository()
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
 
@@ -42,13 +44,9 @@ class PaymentViewModel : ViewModel() {
                     totalAmount = totalAmount,
                     paymentMethod = paymentMethod
                 )
-                val response = ApiClient.apiService.createBooking(request)
-                if (response.success) {
-                    _bookingResult.value = response.data
-                    onSuccess(response.data?.bookingId ?: 0)
-                } else {
-                    _error.value = response.message
-                }
+                val result = repository.createBooking(request)
+                _bookingResult.value = result
+                onSuccess(result.bookingId)
             } catch (e: Exception) {
                 _error.value = e.message ?: "Booking failed"
             } finally {

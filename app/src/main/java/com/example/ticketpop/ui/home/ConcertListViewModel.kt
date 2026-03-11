@@ -3,13 +3,15 @@ package com.example.ticketpop.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ticketpop.data.model.Concert
-import com.example.ticketpop.data.remote.ApiClient
+import com.example.ticketpop.data.repository.ConcertRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @OptIn(FlowPreview::class)
 class ConcertListViewModel : ViewModel() {
+
+    private val repository = ConcertRepository()
 
     private val _allConcerts = MutableStateFlow<List<Concert>>(emptyList())
 
@@ -46,12 +48,7 @@ class ConcertListViewModel : ViewModel() {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val response = ApiClient.apiService.getConcerts()
-                if (response.success && response.data != null) {
-                    _allConcerts.value = response.data
-                } else {
-                    _errorMessage.value = response.message
-                }
+                _allConcerts.value = repository.getConcerts()
             } catch (e: Exception) {
                 _errorMessage.value = "ไม่สามารถเชื่อมต่อได้: ${e.message}"
             } finally {

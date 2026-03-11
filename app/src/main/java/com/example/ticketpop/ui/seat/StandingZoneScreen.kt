@@ -1,40 +1,37 @@
 package com.example.ticketpop.ui.seat
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.ticketpop.utils.Constants
 import java.util.Locale
+
+private val StandBg      = Color(0xFFF8F5FF)
+private val StandPurple  = Color(0xFF7B2FBE)
+private val StandViolet  = Color(0xFF9D4EDD)
+private val StandPink    = Color(0xFFE040FB)
+private val StandGreen   = Color(0xFF00C897)
+private val StandRed     = Color(0xFFFF3B5C)
+private val StandText    = Color(0xFF1A1A2E)
+private val StandSubText = Color(0xFF6B7280)
+private val StandCard    = Color.White
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,177 +42,261 @@ fun StandingZoneScreen(
 ) {
     val zone = viewModel.selectedZone
     val standingCount = viewModel.standingCount
-    val errorMessage = viewModel.errorMessage
     val pricePerSeat = zone?.price ?: 0.0
     val capacity = zone?.capacity ?: 0
+    val totalPrice = viewModel.getTotalPrice()
+    val maxPerBooking = 4
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("โซนยืน - ${zone?.zoneName ?: ""}") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = { navController.popBackStack() }
-                    ) {
-                        Icon(Icons.Default.ArrowBack,
-                            contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            val totalPrice = viewModel.getTotalPrice()
-
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-            ) {
-                Row(
+            Column {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text("โซนยืน", fontWeight = FontWeight.Bold, color = StandText)
+                            zone?.let { Text(it.zoneName, fontSize = 12.sp, color = StandViolet) }
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = StandPurple)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                )
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "รวม: ${String.format(Locale.getDefault(), "%,d", totalPrice.toInt())} บาท",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color(0xFFBB86FC)
+                        .height(2.dp)
+                        .background(Brush.horizontalGradient(listOf(StandPurple, StandPink)))
+                )
+            }
+        },
+        bottomBar = {
+            Surface(shadowElevation = 16.dp, color = Color.White) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(Brush.horizontalGradient(listOf(StandPurple, StandPink)))
                     )
-                    Button(
-                        onClick = { navController.navigate(Constants.ROUTE_ORDER_SUMMARY) },
-                        enabled = standingCount > 0,
-                        modifier = Modifier.height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFBB86FC),
-                            contentColor = Color.White
-                        )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("ยืนยันการจอง")
+                        Column {
+                            Text("ราคารวม", fontSize = 12.sp, color = StandSubText)
+                            Text(
+                                text = "${String.format(Locale.getDefault(), "%,d", totalPrice.toInt())} บาท",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp,
+                                color = StandPurple
+                            )
+                        }
+                        Button(
+                            onClick = { navController.navigate(Constants.ROUTE_ORDER_SUMMARY) },
+                            enabled = standingCount > 0,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = StandPurple,
+                                disabledContainerColor = Color(0xFFD1D5DB)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                        ) {
+                            Text("ยืนยันการจอง", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
                     }
                 }
             }
-        }
-    ) { paddingValues ->
+        },
+        containerColor = StandBg
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(32.dp),
+                .padding(padding)
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // Capacity info bar
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = StandViolet.copy(alpha = 0.08f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Default.Groups, contentDescription = null, tint = StandViolet, modifier = Modifier.size(20.dp))
+                    Text(
+                        "ที่ว่างในโซนนี้: $capacity ที่  •  จองได้สูงสุด $maxPerBooking ใบ/ครั้ง",
+                        fontSize = 13.sp,
+                        color = StandViolet,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // Counter card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFFE4F1)
-                ),
-                border = BorderStroke(1.dp, Color(0xFFBB86FC))
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(containerColor = StandCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, StandPurple.copy(alpha = 0.2f))
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Text(
-                        text = "เลือกจำนวนบัตร",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "จองได้สูงสุด 4 ใบต่อครั้ง",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
+                    Text("จำนวนบัตร", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = StandText)
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
+                    // Counter row
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        horizontalArrangement = Arrangement.spacedBy(32.dp)
                     ) {
-                        // Minus Button
-                        IconButton(
-                            onClick = {
-                                viewModel.updateStandingCount(-1)
-                            },
-                            enabled = viewModel.standingCount > 0
+                        // Minus button
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (standingCount > 0) StandPurple.copy(alpha = 0.12f)
+                                    else Color(0xFFF3F4F6)
+                                )
+                                .let {
+                                    if (standingCount > 0) it.border(1.dp, StandPurple.copy(alpha = 0.3f), CircleShape)
+                                    else it
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("-", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                            IconButton(
+                                onClick = { viewModel.updateStandingCount(-1) },
+                                enabled = standingCount > 0,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Default.Remove, contentDescription = "ลด",
+                                    tint = if (standingCount > 0) StandPurple else StandSubText,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
 
-                        // number of tickets
-                        Text(
-                            text = "${viewModel.standingCount}",
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFBB86FC)
-                        )
+                        // Count display
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.linearGradient(listOf(StandPurple, StandPink))
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$standingCount",
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
 
                         // Plus button
-                        IconButton(
-                            onClick = {
-                                viewModel.updateStandingCount(1)
-                            },
-                            enabled = viewModel.standingCount < 4 && viewModel.standingCount < capacity
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (standingCount < maxPerBooking && standingCount < capacity)
+                                        StandPurple.copy(alpha = 0.12f)
+                                    else Color(0xFFF3F4F6)
+                                )
+                                .let {
+                                    if (standingCount < maxPerBooking && standingCount < capacity)
+                                        it.border(1.dp, StandPurple.copy(alpha = 0.3f), CircleShape)
+                                    else it
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("+", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                            IconButton(
+                                onClick = { viewModel.updateStandingCount(1) },
+                                enabled = standingCount < maxPerBooking && standingCount < capacity,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Default.Add, contentDescription = "เพิ่ม",
+                                    tint = if (standingCount < maxPerBooking && standingCount < capacity)
+                                        StandPurple else StandSubText,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
+                    HorizontalDivider(color = Color(0xFFE5E7EB))
+
+                    // Price breakdown
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("ราคาใบละ")
-                        Text("${String.format(Locale.getDefault(), "%,d", pricePerSeat.toInt())} บาท")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("จำนวน")
-                        Text("x$standingCount")
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "รวม",
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${String.format(Locale.getDefault(), "%,d", viewModel.getTotalPrice().toInt())} บาท",
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFBB86FC)
-                        )
+                        PriceRow("ราคาต่อใบ", "${String.format(Locale.getDefault(), "%,d", pricePerSeat.toInt())} บาท")
+                        PriceRow("จำนวน", "× $standingCount")
+                        HorizontalDivider(color = Color(0xFFE5E7EB))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("รวมทั้งสิ้น", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = StandText)
+                            Text(
+                                "${String.format(Locale.getDefault(), "%,d", totalPrice.toInt())} บาท",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                                color = StandPurple
+                            )
+                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
 
-            Text("(เหลือที่ว่างในโซน: ${capacity})", fontSize = 12.sp, color = Color.Gray)
-
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage,
-                    color = Color.Red,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+            // Error message
+            if (viewModel.errorMessage != null) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = StandRed.copy(alpha = 0.1f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = StandRed, modifier = Modifier.size(16.dp))
+                        Text(viewModel.errorMessage ?: "", color = StandRed, fontSize = 13.sp)
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun PriceRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, fontSize = 13.sp, color = StandSubText)
+        Text(value, fontSize = 13.sp, color = StandText, fontWeight = FontWeight.Medium)
     }
 }

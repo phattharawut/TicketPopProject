@@ -13,11 +13,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -27,16 +29,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.ticketpop.data.model.Concert
+import com.example.ticketpop.ui.auth.AuthViewModel
+import com.example.ticketpop.utils.Constants
 
 @Composable
 fun HomeScreen(
     navController: NavController,
+    authViewModel: AuthViewModel? = null,
     viewModel: ConcertListViewModel = viewModel()
 ) {
     val concerts by viewModel.concerts.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val currentUser = authViewModel?.currentUser?.value
+    val isAdmin = currentUser?.role?.lowercase() == "admin"
 
     Column(
         modifier = Modifier
@@ -44,6 +51,34 @@ fun HomeScreen(
             .background(Color.White)
             .statusBarsPadding()
     ) {
+        // ── Admin Banner ────────────────────────────────────────
+        if (isAdmin) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.horizontalGradient(listOf(Color(0xFF7B2FBE), Color(0xFFE040FB)))
+                    )
+                    .clickable { navController.navigate(Constants.ROUTE_ADMIN_DASH) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Default.AdminPanelSettings,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "กลับไปหน้า Admin Dashboard",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+        }
 
         // ── Search Bar ──────────────────────────────────────────
         OutlinedTextField(
@@ -255,10 +290,10 @@ private fun formatDate(dateStr: String): String {
 
 private fun formatPrice(concert: Concert): String {
     val min = concert.minPrice
-    val max = concert.maxPrice
+    val zone = concert.minPriceZone
     return when {
         min == null -> "N/A"
-        min == max  -> String.format("%,.0f", min)
-        else        -> "${String.format("%,.0f", min)} - ${String.format("%,.0f", max)}"
+        zone != null -> "เริ่มต้น ${String.format("%,.0f", min)} (โซน $zone)"
+        else -> "เริ่มต้น ${String.format("%,.0f", min)}"
     }
 }

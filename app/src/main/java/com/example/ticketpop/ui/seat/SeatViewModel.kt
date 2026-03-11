@@ -8,13 +8,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ticketpop.data.model.Seat
 import com.example.ticketpop.data.model.Zone
-import com.example.ticketpop.data.remote.ApiClient
-import com.google.gson.Gson
+import com.example.ticketpop.data.repository.SeatRepository
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import com.example.ticketpop.data.model.ApiResponse
 
 class SeatViewModel : ViewModel() {
+
+    private val repository = SeatRepository()
     var zoneList = mutableStateListOf<Zone>()
         private set
     var selectedZone by mutableStateOf<Zone?>(null)
@@ -36,20 +35,9 @@ class SeatViewModel : ViewModel() {
             isLoading = true
             errorMessage = null
             try {
-                val response = ApiClient.apiService.getZones(concertId)
-                if (response.success) {
-                    zoneList.clear()
-                    zoneList.addAll(response.data ?: emptyList())
-                } else {
-                    errorMessage = response.message
-                }
-            } catch (e: HttpException) {
-                val errorBody = e.response()?.errorBody()?.string()
-                errorMessage = try {
-                    Gson().fromJson(errorBody, ApiResponse::class.java).message
-                } catch (ex: Exception) {
-                    "ไม่สามารถโหลดข้อมูลโซนได้ (400)"
-                }
+                val zones = repository.getZones(concertId)
+                zoneList.clear()
+                zoneList.addAll(zones)
             } catch (e: Exception) {
                 errorMessage = "ไม่สามารถโหลดข้อมูลโซนได้: ${e.localizedMessage}"
             } finally {
@@ -64,20 +52,9 @@ class SeatViewModel : ViewModel() {
             errorMessage = null
             selectedSeats.clear()
             try {
-                val response = ApiClient.apiService.getSeats(zoneId)
-                if (response.success) {
-                    seatList.clear()
-                    seatList.addAll(response.data ?: emptyList())
-                } else {
-                    errorMessage = response.message
-                }
-            } catch (e: HttpException) {
-                val errorBody = e.response()?.errorBody()?.string()
-                errorMessage = try {
-                    Gson().fromJson(errorBody, ApiResponse::class.java).message
-                } catch (ex: Exception) {
-                    "ไม่สามารถโหลดผังที่นั่งได้ (400)"
-                }
+                val seats = repository.getSeats(zoneId)
+                seatList.clear()
+                seatList.addAll(seats)
             } catch (e: Exception) {
                 errorMessage = "ไม่สามารถโหลดผังที่นั่งได้: ${e.localizedMessage}"
             } finally {
